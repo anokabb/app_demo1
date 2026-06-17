@@ -10,6 +10,7 @@ import 'package:flutter_app_template/src/features/auth/data/repos/auth_repo.dart
 import 'package:flutter_app_template/src/features/auth/data/repos/mock_auth_repo.dart';
 import 'package:flutter_app_template/src/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -35,7 +36,7 @@ void setupLocator() {
   // locator.registerLazySingleton<AuthApi>(() => AuthApi(locator<Dio>()));
 
   // 3. Repositories
-  if (isMockTesting ) {
+  if (isMockTesting) {
     locator.registerLazySingleton<AuthRepo>(() => MockAuthRepo());
   } else {
     // locator.registerLazySingleton<AuthRepo>(() => AuthRepoImpl(locator<AuthApi>()));
@@ -45,6 +46,7 @@ void setupLocator() {
   locator.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
   locator.registerLazySingleton<LanguageCubit>(() => LanguageCubit());
   locator.registerLazySingleton<AuthCubit>(() => AuthCubit(locator<AuthRepo>()));
+  locator.registerLazySingleton<ImageToPromptCubit>(() => ImageToPromptCubit());
 }
 
 void onLoggedIn(GetIt instance) async {

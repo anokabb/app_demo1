@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/routing/app_shell.dart';
 import 'package:flutter_app_template/src/core/routing/guards/auth_guard.dart';
-import 'package:flutter_app_template/src/core/routing/tabs/home_tab.dart';
+import 'package:flutter_app_template/src/core/routing/tabs/create_tab.dart';
+import 'package:flutter_app_template/src/core/routing/tabs/history_tab.dart';
+import 'package:flutter_app_template/src/core/routing/tabs/profile_tab.dart';
 import 'package:flutter_app_template/src/core/services/logger/logger.dart';
 import 'package:flutter_app_template/src/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:flutter_app_template/src/features/auth/presentation/pages/login_page.dart';
@@ -10,7 +12,8 @@ import 'package:flutter_app_template/src/features/auth/presentation/pages/otp_ve
 import 'package:flutter_app_template/src/features/auth/presentation/pages/register_page.dart';
 import 'package:flutter_app_template/src/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flutter_app_template/src/features/dev/presentation/views/dev_mode_view.dart';
-import 'package:flutter_app_template/src/features/home/presentation/pages/home_page.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/settings/presentation/views/settings_view.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/pages/language_page.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/pages/theme_page.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +22,7 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(deb
 
 class AppRouter {
   static const String baseRoute = '/';
-  static const String defaultRoute = HomePage.routeName;
+  static const String defaultRoute = CreateView.routeName;
 
   final _logger = getLogger('AppRouter');
 
@@ -38,9 +41,11 @@ class AppRouter {
 
   StatefulShellRoute _statefulShellRoute() {
     return StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+      builder: (context, state, navigationShell) => ImageToPromptShell(navigationShell: navigationShell),
       branches: [
-        homeTabBranch,
+        historyTabBranch,
+        createTabBranch,
+        profileTabBranch,
       ],
     );
   }
@@ -85,7 +90,7 @@ class AppRouter {
     ];
   }
 
-  List<GoRoute> _otherRoutes() {
+  List<RouteBase> _otherRoutes() {
     return [
       GoRoute(
         path: DevModeView.routeName,
@@ -98,6 +103,11 @@ class AppRouter {
       GoRoute(
         path: LanguagePage.routeName,
         pageBuilder: (context, state) => CupertinoPage(child: LanguagePage()),
+      ),
+      GoRoute(
+        path: SettingsView.routeName,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => const CupertinoPage(child: SettingsView()),
       ),
     ];
   }

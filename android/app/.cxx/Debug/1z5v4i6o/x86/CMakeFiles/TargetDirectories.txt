@@ -1,0 +1,2 @@
+/Users/anouar/Desktop/apps/Freelance/flutter_app_template/android/app/.cxx/Debug/1z5v4i6o/x86/CMakeFiles/edit_cache.dir
+/Users/anouar/Desktop/apps/Freelance/flutter_app_template/android/app/.cxx/Debug/1z5v4i6o/x86/CMakeFiles/rebuild_cache.dir

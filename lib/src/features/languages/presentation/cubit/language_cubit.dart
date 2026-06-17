@@ -3,7 +3,7 @@ import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/pages/language_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-const DEFAULT_LANGUAGE = LanguageEnum.ar;
+const DEFAULT_LANGUAGE = LanguageEnum.en;
 
 class LanguageCubit extends Cubit<Locale?> {
   LanguageCubit() : super(null) {

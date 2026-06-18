@@ -37,17 +37,26 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     );
   }
 
+  static String _imageKey(String id) => 'itp_image_$id';
+
   static List<HistoryEntryModel> _loadHistory() {
     final raw = persistsData.get(_historyKey);
     if (raw is! String || raw.isEmpty) return [];
     try {
       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-      return list.map(HistoryEntryModel.fromJson).toList();
+      return list.map((json) {
+        final entry = HistoryEntryModel.fromJson(json);
+        final bytes = persistsData.get(_imageKey(entry.id));
+        return entry.copyWith(imageBytes: bytes is Uint8List ? bytes : Uint8List(0));
+      }).toList();
     } catch (_) {
       return [];
     }
   }
 
+  // Only lightweight metadata goes through jsonEncode here — images live under
+  // their own Hive key (see [_imageKey]) so adding/removing one entry doesn't
+  // re-serialize every other entry's image bytes.
   void _persistHistory(List<HistoryEntryModel> history) {
     persistsData.put(_historyKey, jsonEncode(history.map((e) => e.toJson()).toList()));
   }
@@ -159,17 +168,23 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   Future<void> _addToHistory(String prompt, Uint8List bytes, String mimeType) async {
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
     final entry = HistoryEntryModel(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: id,
       prompt: prompt,
-      imageBase64: base64Encode(bytes),
       mimeType: mimeType,
       tier: state.selectedModel,
       outputLanguage: state.outputLanguage,
       createdAt: DateTime.now(),
+      imageBytes: bytes,
     );
+    persistsData.put(_imageKey(id), bytes);
+
     final updated = [entry, ...state.history];
     if (updated.length > _maxHistoryEntries) {
+      for (final dropped in updated.sublist(_maxHistoryEntries)) {
+        persistsData.delete(_imageKey(dropped.id));
+      }
       updated.removeRange(_maxHistoryEntries, updated.length);
     }
     _persistHistory(updated);
@@ -177,6 +192,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   void deleteHistoryEntry(String id) {
+    persistsData.delete(_imageKey(id));
     final updated = state.history.where((e) => e.id != id).toList();
     _persistHistory(updated);
     emit(state.copyWith(history: updated));

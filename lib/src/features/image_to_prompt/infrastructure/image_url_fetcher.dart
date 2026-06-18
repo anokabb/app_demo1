@@ -10,23 +10,38 @@ import 'package:fpdart/fpdart.dart';
 class ImageUrlFetcher {
   static final _log = getLogger('ImageUrlFetcher');
 
+  /// Mirrors the cap enforced on picker-uploaded images (see [CreateView]) so a
+  /// pasted URL can't bypass it and buffer an unbounded image into memory.
+  static const maxBytes = 8 * 1024 * 1024;
+
   static final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 20),
   ));
 
   static Future<Either<AppError, (Uint8List, String)>> fetch(String url) async {
+    final cancelToken = CancelToken();
     try {
       final response = await _dio.get<List<int>>(
         url,
         options: Options(responseType: ResponseType.bytes),
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (received > maxBytes) cancelToken.cancel('Image exceeds $maxBytes bytes');
+        },
       );
       final bytes = Uint8List.fromList(response.data ?? []);
       if (bytes.isEmpty) return left(const AppError.unknown());
+      if (bytes.lengthInBytes > maxBytes) {
+        return left(const AppError.server(message: 'Image is too large (max 8MB).'));
+      }
 
       final mimeType = response.headers.value('content-type')?.split(';').first.trim() ?? 'image/jpeg';
       return right((bytes, mimeType));
     } catch (e) {
+      if (cancelToken.isCancelled) {
+        return left(const AppError.server(message: 'Image is too large (max 8MB).'));
+      }
       _log.e('[ERROR fetch] ${e.toString()}');
       return left(AppError.fromException(e));
     }

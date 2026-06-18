@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
@@ -239,7 +241,7 @@ class _HistoryCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.memory(
-              entry.imageBytes,
+              entry.imageBytes ?? Uint8List(0),
               width: 64,
               height: 64,
               fit: BoxFit.cover,

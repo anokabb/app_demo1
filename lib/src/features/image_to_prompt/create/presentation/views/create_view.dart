@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,13 +8,12 @@ import 'package:flutter_app_template/src/core/extensions/context_extension.dart'
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_url_fetcher.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/language_picker_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
-const _kMaxImageBytes = 8 * 1024 * 1024;
 
 String _guessMimeType(String path) {
   final ext = path.split('.').last.toLowerCase();
@@ -58,7 +59,7 @@ class _CreateViewState extends State<CreateView> {
     final file = await AppImagePicker.showPopUp(context: context);
     if (file == null) return;
     final bytes = await file.readAsBytes();
-    if (bytes.lengthInBytes > _kMaxImageBytes) {
+    if (bytes.lengthInBytes > ImageUrlFetcher.maxBytes) {
       if (!mounted) return;
       showTopAlert('Image is too large (max 8MB).', isError: true);
       return;
@@ -77,6 +78,9 @@ class _CreateViewState extends State<CreateView> {
     return BlocBuilder<ImageToPromptCubit, ImageToPromptState>(
       bloc: cubit,
       builder: (context, state) {
+        if (_urlController.text != state.imageUrl) {
+          _urlController.text = state.imageUrl;
+        }
         final c = PromptColors(state.darkMode);
         final recentItems = state.history.take(2).toList();
 
@@ -551,7 +555,7 @@ class _CreateViewState extends State<CreateView> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(13),
                             child: Image.memory(
-                              item.imageBytes,
+                              item.imageBytes ?? Uint8List(0),
                               width: 86,
                               height: 86,
                               fit: BoxFit.cover,

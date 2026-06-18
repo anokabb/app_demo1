@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/language_picker_sheet.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/model_tier_picker_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -154,15 +157,23 @@ class _SettingsBody extends StatelessWidget {
               _SettingsRow(
                 icon: Icons.auto_awesome_outlined,
                 title: 'Default model',
-                trailing: 'Vision 4.0',
+                trailing: state.selectedModel.label,
                 c: c,
                 isFirst: true,
+                onTap: () async {
+                  final tier = await showModelTierPickerSheet(context: context, c: c, current: state.selectedModel);
+                  if (tier != null) cubit.setDefaultModel(tier);
+                },
               ),
               _SettingsRow(
                 icon: Icons.language,
                 title: 'Output language',
-                trailing: 'English',
+                trailing: state.outputLanguage,
                 c: c,
+                onTap: () async {
+                  final lang = await showLanguagePickerSheet(context: context, c: c, current: state.outputLanguage);
+                  if (lang != null) cubit.setOutputLanguage(lang);
+                },
               ),
             ],
           ),
@@ -341,6 +352,7 @@ class _SettingsRow extends StatelessWidget {
   final String trailing;
   final PromptColors c;
   final bool isFirst;
+  final VoidCallback? onTap;
 
   const _SettingsRow({
     required this.icon,
@@ -348,6 +360,7 @@ class _SettingsRow extends StatelessWidget {
     required this.trailing,
     required this.c,
     this.isFirst = false,
+    this.onTap,
   });
 
   @override
@@ -355,27 +368,30 @@ class _SettingsRow extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst) Divider(color: c.line, thickness: 1, height: 1),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: c.iconBox,
-                  borderRadius: BorderRadius.circular(11),
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: c.iconBox,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(icon, color: c.accentText, size: 18),
                 ),
-                child: Icon(icon, color: c.accentText, size: 18),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.ink)),
-              ),
-              Text(trailing, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.muted)),
-              const SizedBox(width: 6),
-              Icon(Icons.chevron_right, color: c.line, size: 17),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.ink)),
+                ),
+                Text(trailing, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.muted)),
+                const SizedBox(width: 6),
+                Icon(Icons.chevron_right, color: c.line, size: 17),
+              ],
+            ),
           ),
         ),
       ],

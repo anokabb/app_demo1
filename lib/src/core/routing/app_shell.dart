@@ -43,7 +43,9 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
                       c: c,
                       onSettings: () => context.push(SettingsView.routeName),
                     ),
-                    Expanded(child: widget.navigationShell),
+                    Expanded(
+                      child: widget.navigationShell,
+                    ),
                   ],
                 ),
                 Positioned(
@@ -87,7 +89,10 @@ class _PromptHeader extends StatelessWidget {
             : const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFEFEBFB), Colors.transparent],
+                colors: [
+                  Color(0xFFF0EBFB),
+                  Color(0xFFF8F7F3),
+                ],
               ),
       ),
       child: Row(

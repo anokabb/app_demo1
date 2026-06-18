@@ -43,8 +43,8 @@ class AppRouter {
     return StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => ImageToPromptShell(navigationShell: navigationShell),
       branches: [
-        historyTabBranch,
         createTabBranch,
+        historyTabBranch,
         profileTabBranch,
       ],
     );

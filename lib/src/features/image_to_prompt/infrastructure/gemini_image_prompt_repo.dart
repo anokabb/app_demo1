@@ -31,7 +31,6 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
     required String mimeType,
     required ImagePromptModelTier tier,
     required bool smartEnhance,
-    required bool autoDetectLanguage,
     required String outputLanguage,
   }) async {
     try {
@@ -45,7 +44,6 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
       final modelId = _modelIds[tier]!;
       final instruction = _buildInstruction(
         smartEnhance: smartEnhance,
-        autoDetectLanguage: autoDetectLanguage,
         outputLanguage: outputLanguage,
       );
 
@@ -96,7 +94,6 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
 
   String _buildInstruction({
     required bool smartEnhance,
-    required bool autoDetectLanguage,
     required String outputLanguage,
   }) {
     final buffer = StringBuffer(
@@ -110,9 +107,7 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
         ? ' Make the prompt vivid, richly detailed and evocative, around 60-90 words.'
         : ' Keep the prompt concise and literal, around 25-40 words, focusing on the essential visual elements only.');
 
-    if (!autoDetectLanguage) {
-      buffer.write(' Write the prompt in $outputLanguage.');
-    }
+    buffer.write(' Write the prompt in $outputLanguage.');
 
     return buffer.toString();
   }

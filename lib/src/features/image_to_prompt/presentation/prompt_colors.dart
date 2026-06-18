@@ -4,7 +4,7 @@ class PromptColors {
   final bool dark;
   const PromptColors(this.dark);
 
-  Color get page => dark ? const Color(0xFF141019) : const Color(0xFFF4F2FB);
+  Color get page => dark ? const Color(0xFF141019) : const Color(0xFFF8F7F3);
   Color get card => dark ? const Color(0xFF1F1B2B) : Colors.white;
   Color get ink => dark ? const Color(0xFFF4F1FB) : const Color(0xFF16121F);
   Color get muted => dark ? const Color(0xFFA39DB5) : const Color(0xFF6B6577);

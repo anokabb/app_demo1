@@ -40,7 +40,6 @@ abstract class ImagePromptRepo {
     required String mimeType,
     required ImagePromptModelTier tier,
     required bool smartEnhance,
-    required bool autoDetectLanguage,
     required String outputLanguage,
   });
 }

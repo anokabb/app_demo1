@@ -3,7 +3,7 @@ name: Firebase App Distribution
 on:
   push:
     branches:
-      - deploy
+      - dev
   workflow_dispatch:
 
 jobs:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 
@@ -7,10 +8,11 @@ Future<ImagePromptModelTier?> showModelTierPickerSheet({
   required PromptColors c,
   required ImagePromptModelTier current,
 }) {
-  return showModalBottomSheet<ImagePromptModelTier>(
+  return SlideUpPopUp.show<ImagePromptModelTier>(
     context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _ModelTierPickerSheet(c: c, current: current),
+    backgroundColor: c.card,
+    borderRadius: BorderRadius.circular(24),
+    child: _ModelTierPickerSheet(c: c, current: current),
   );
 }
 
@@ -21,14 +23,7 @@ class _ModelTierPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
+    return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
@@ -52,8 +47,6 @@ class _ModelTierPickerSheet extends StatelessWidget {
             }),
             const SizedBox(height: 12),
           ],
-        ),
-      ),
-    );
+        );
   }
 }

@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "flutter-android-emulator",
+      "runtimeExecutable": "fvm",
+      "runtimeArgs": ["flutter", "run", "-d", "emulator-5554"],
+      "autoPort": true,
+      "port": 9100
+    },
+    {
+      "name": "flutter-web-chrome",
+      "runtimeExecutable": "fvm",
+      "runtimeArgs": ["flutter", "run", "-d", "chrome", "--web-port", "8080"],
+      "port": 8080
+    }
+  ]
+}

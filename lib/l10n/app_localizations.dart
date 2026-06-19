@@ -245,11 +245,29 @@ abstract class AppLocalizations {
   /// **'From Gallery'**
   String get fromGallery;
 
+  /// No description provided for @fromGallerySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an existing photo'**
+  String get fromGallerySubtitle;
+
   /// No description provided for @takePhoto.
   ///
   /// In en, this message translates to:
   /// **'Take Photo'**
   String get takePhoto;
+
+  /// No description provided for @takePhotoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your camera'**
+  String get takePhotoSubtitle;
+
+  /// No description provided for @uploadImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Your Image'**
+  String get uploadImage;
 
   /// No description provided for @noImageSelected.
   ///

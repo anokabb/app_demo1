@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 
 const kPromptLanguages = [
@@ -20,10 +21,11 @@ Future<String?> showLanguagePickerSheet({
   required PromptColors c,
   required String current,
 }) {
-  return showModalBottomSheet<String>(
+  return SlideUpPopUp.show<String>(
     context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _LanguagePickerSheet(c: c, current: current),
+    backgroundColor: c.card,
+    borderRadius: BorderRadius.circular(24),
+    child: _LanguagePickerSheet(c: c, current: current),
   );
 }
 
@@ -34,15 +36,9 @@ class _LanguagePickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
@@ -75,7 +71,6 @@ class _LanguagePickerSheet extends StatelessWidget {
             const SizedBox(height: 12),
           ],
         ),
-      ),
     );
   }
 }

@@ -7,6 +7,11 @@ class Unset {
   const Unset();
 }
 
+/// Default value for copyWith's nullable-field params — distinct from [Unset]
+/// so "field omitted" (keep current value) can be told apart from an
+/// explicit `Unset()` (reset to null).
+const _unspecified = Object();
+
 class ImageToPromptState {
   final ImagePromptModelTier selectedModel;
   final Uint8List? pickedImageBytes;
@@ -52,12 +57,12 @@ class ImageToPromptState {
 
   ImageToPromptState copyWith({
     ImagePromptModelTier? selectedModel,
-    Object? pickedImageBytes = const Unset(),
-    Object? pickedImageMime = const Unset(),
+    Object? pickedImageBytes = _unspecified,
+    Object? pickedImageMime = _unspecified,
     String? imageUrl,
     bool? isGenerating,
     String? generatedPrompt,
-    Object? genError = const Unset(),
+    Object? genError = _unspecified,
     bool? showResult,
     bool? resultCopied,
     int? recentCopied,
@@ -73,12 +78,16 @@ class ImageToPromptState {
   }) {
     return ImageToPromptState(
       selectedModel: selectedModel ?? this.selectedModel,
-      pickedImageBytes: pickedImageBytes is Unset ? this.pickedImageBytes : pickedImageBytes as Uint8List?,
-      pickedImageMime: pickedImageMime is Unset ? this.pickedImageMime : pickedImageMime as String?,
+      pickedImageBytes: pickedImageBytes == _unspecified
+          ? this.pickedImageBytes
+          : (pickedImageBytes is Unset ? null : pickedImageBytes as Uint8List?),
+      pickedImageMime: pickedImageMime == _unspecified
+          ? this.pickedImageMime
+          : (pickedImageMime is Unset ? null : pickedImageMime as String?),
       imageUrl: imageUrl ?? this.imageUrl,
       isGenerating: isGenerating ?? this.isGenerating,
       generatedPrompt: generatedPrompt ?? this.generatedPrompt,
-      genError: genError is Unset ? this.genError : genError as String?,
+      genError: genError == _unspecified ? this.genError : (genError is Unset ? null : genError as String?),
       showResult: showResult ?? this.showResult,
       resultCopied: resultCopied ?? this.resultCopied,
       recentCopied: recentCopied ?? this.recentCopied,

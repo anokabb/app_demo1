@@ -64,7 +64,7 @@ class _CreateViewState extends State<CreateView> {
       showTopAlert('Image is too large (max 8MB).', isError: true);
       return;
     }
-    cubit.setPickedImage(bytes, _guessMimeType(file.path));
+    cubit.setPickedImage(bytes, _guessMimeType(file.name));
     _urlController.clear();
   }
 

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -29,11 +29,11 @@ class AppImagePicker extends StatefulWidget {
   @override
   State<AppImagePicker> createState() => _AppImagePickerState();
 
-  static Future<File?> showPopUp({
+  static Future<XFile?> showPopUp({
     required BuildContext context,
     required PromptColors c,
   }) async {
-    return await SlideUpPopUp.show<File?>(
+    return await SlideUpPopUp.show<XFile?>(
       context: context,
       backgroundColor: c.card,
       borderRadius: BorderRadius.circular(24),
@@ -77,12 +77,8 @@ class AppImagePicker extends StatefulWidget {
     );
   }
 
-  static Future<File?> _pickImage(ImageSource source) async {
-    final file = await ImagePicker().pickImage(source: source);
-    if (file != null) {
-      return File(file.path);
-    }
-    return null;
+  static Future<XFile?> _pickImage(ImageSource source) async {
+    return ImagePicker().pickImage(source: source);
   }
 }
 
@@ -144,7 +140,7 @@ class _PickerOption extends StatelessWidget {
 }
 
 class _AppImagePickerState extends State<AppImagePicker> {
-  String? _pickedImagePath;
+  Uint8List? _pickedImageBytes;
 
   @override
   Widget build(BuildContext context) {
@@ -160,11 +156,12 @@ class _AppImagePickerState extends State<AppImagePicker> {
                 context: context,
                 c: PromptColors(Theme.of(context).brightness == Brightness.dark),
               ).then(
-                (file) {
+                (file) async {
                   if (file != null) {
+                    final bytes = await file.readAsBytes();
                     widget.onImagePicked?.call(file.path);
                     setState(() {
-                      _pickedImagePath = file.path;
+                      _pickedImageBytes = bytes;
                     });
                   }
                 },
@@ -172,11 +169,11 @@ class _AppImagePickerState extends State<AppImagePicker> {
             },
             padding: EdgeInsets.zero,
             minSize: 0,
-            child: _pickedImagePath != null
+            child: _pickedImageBytes != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: Image.file(
-                      File(_pickedImagePath!),
+                    child: Image.memory(
+                      _pickedImageBytes!,
                       fit: BoxFit.cover,
                       width: widget.size ?? double.infinity,
                       height: widget.size,

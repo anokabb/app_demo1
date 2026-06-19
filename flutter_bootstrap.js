@@ -11,6 +11,12 @@ _flutter.buildConfig = {"engineRevision":"cf56914b326edb0ccb123ffdc60f00060bd513
 
 _flutter.loader.load({
   serviceWorkerSettings: {
-    serviceWorkerVersion: "2809862038"
+    serviceWorkerVersion: "1898293068"
+  },
+  config: {
+    // Serve CanvasKit from this app's own bundle instead of fetching it from
+    // www.gstatic.com at runtime — avoids a permanent blank screen when that
+    // CDN is unreachable or blocked (ad blockers, restrictive networks, etc).
+    canvasKitBaseUrl: "canvaskit/"
   }
 });

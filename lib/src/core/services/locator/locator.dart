@@ -13,6 +13,9 @@ import 'package:flutter_app_template/src/features/languages/presentation/cubit/l
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/mock_image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
+import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
+import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -51,6 +54,12 @@ void setupLocator() {
   locator.registerLazySingleton<LanguageCubit>(() => LanguageCubit());
   locator.registerLazySingleton<AuthCubit>(() => AuthCubit(locator<AuthRepo>()));
   locator.registerLazySingleton<ImageToPromptCubit>(() => ImageToPromptCubit());
+
+  // 5. Remote Config / RevenueCat — registered but not yet initialized
+  // (Firebase isn't wired up in main.dart yet); inert until then.
+  locator.registerLazySingleton<RemoteConfigService>(() => RemoteConfigService());
+  locator.registerLazySingleton<RevenueCatService>(() => RevenueCatService());
+  locator.registerLazySingleton<SubscriptionCubit>(() => SubscriptionCubit(locator<RemoteConfigService>()));
 }
 
 void onLoggedIn(GetIt instance) async {
@@ -61,4 +70,5 @@ List<BlocProvider> blocProviders = [
   BlocProvider<ThemeCubit>.value(value: locator<ThemeCubit>()),
   BlocProvider<LanguageCubit>.value(value: locator<LanguageCubit>()),
   BlocProvider<AuthCubit>(create: (_) => locator<AuthCubit>(), lazy: false),
+  BlocProvider<SubscriptionCubit>.value(value: locator<SubscriptionCubit>()),
 ];

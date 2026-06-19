@@ -18,6 +18,16 @@ void main() async {
   await locator.allReady();
   await locator<AuthCubit>().checkAuthStatus();
 
+  // Remote Config / RevenueCat init — depends on Firebase being initialized
+  // above, so left inert until that's wired up.
+  // await locator<RemoteConfigService>().initialize();
+  // await locator<RemoteConfigService>().fetchAndActivate();
+  // await locator<RevenueCatService>().initialize(
+  //   apiKey: Platform.isIOS
+  //       ? locator<RemoteConfigService>().data.revenueCat.revenueIOSApiKey
+  //       : locator<RemoteConfigService>().data.revenueCat.revenueAndroidApiKey,
+  // );
+
   runApp(
     App(
       routerConfig: AppRouter().createRouter(),

@@ -32,6 +32,9 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
       bloc: cubit,
       builder: (context, state) {
         final c = PromptColors(state.darkMode);
+        // Bottom nav is a Positioned overlay, not Scaffold.bottomNavigationBar, so it
+        // doesn't get pushed off-screen by the keyboard automatically — hide it manually.
+        final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
         return Scaffold(
           backgroundColor: c.page,
           body: SafeArea(
@@ -48,16 +51,17 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
                     ),
                   ],
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _PromptBottomNav(
-                    currentIndex: widget.navigationShell.currentIndex,
-                    c: c,
-                    onTap: _onTabTap,
+                if (!keyboardVisible)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _PromptBottomNav(
+                      currentIndex: widget.navigationShell.currentIndex,
+                      c: c,
+                      onTap: _onTabTap,
+                    ),
                   ),
-                ),
               ],
             ),
           ),

@@ -10,8 +10,8 @@ import 'package:flutter_app_template/src/features/auth/data/repos/auth_repo.dart
 import 'package:flutter_app_template/src/features/auth/data/repos/mock_auth_repo.dart';
 import 'package:flutter_app_template/src/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/gemini_image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
-import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/mock_image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
 import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
@@ -45,9 +45,8 @@ void setupLocator() {
   locator.registerLazySingleton<AuthRepo>(() => MockAuthRepo());
 
   // 3b. Image-to-prompt provider — swap this single line to switch providers
-  // (e.g. `GeminiImagePromptRepo()`); everything else depends on `ImagePromptRepo`.
-  // Staying on the mock for now until the Gemini API key handling is ready.
-  locator.registerLazySingleton<ImagePromptRepo>(() => MockImagePromptRepo());
+  // (e.g. `MockImagePromptRepo()`); everything else depends on `ImagePromptRepo`.
+  locator.registerLazySingleton<ImagePromptRepo>(() => GeminiImagePromptRepo());
 
   // 4. Cubits
   locator.registerLazySingleton<ThemeCubit>(() => ThemeCubit());

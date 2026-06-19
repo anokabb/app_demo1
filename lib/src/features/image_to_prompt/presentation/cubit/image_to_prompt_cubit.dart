@@ -27,7 +27,6 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       history: _loadHistory(),
       autoSave: settingsBox.get('itp_auto_save', defaultValue: true),
       smartEnhance: settingsBox.get('itp_smart_enhance', defaultValue: true),
-      notifications: settingsBox.get('itp_notifications', defaultValue: true),
       darkMode: settingsBox.get('itp_dark_mode', defaultValue: false),
       outputLanguage: settingsBox.get('itp_output_language', defaultValue: 'English'),
       selectedModel: ImagePromptModelTier.values.firstWhere(
@@ -72,16 +71,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   void setImageUrl(String url) {
-    if (url.trim().isNotEmpty) {
-      emit(state.copyWith(
-        imageUrl: url,
-        pickedImageBytes: const Unset(),
-        pickedImageMime: const Unset(),
-        genError: const Unset(),
-      ));
-    } else {
-      emit(state.copyWith(imageUrl: url, genError: const Unset()));
-    }
+    emit(state.copyWith(imageUrl: url.trim(), genError: const Unset()));
   }
 
   // ── options ─────────────────────────────────────────────────────────────
@@ -105,16 +95,11 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   // ── generation ──────────────────────────────────────────────────────────
 
   Future<void> generate() async {
-    Uint8List? bytes = state.pickedImageBytes;
+    Uint8List? bytes;
     String mimeType = state.pickedImageMime ?? 'image/jpeg';
 
-    if (bytes == null) {
-      final url = state.imageUrl.trim();
-      if (url.isEmpty) {
-        showTopAlert('Upload an image or paste a URL first.', isError: true);
-        return;
-      }
-
+    final url = state.imageUrl.trim();
+    if (url.isNotEmpty) {
       emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false));
 
       final fetched = await ImageUrlFetcher.fetch(url);
@@ -127,8 +112,13 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
       bytes = fetchedData.$1;
       mimeType = fetchedData.$2;
-      emit(state.copyWith(pickedImageBytes: bytes, pickedImageMime: mimeType));
+      emit(state.copyWith(pickedImageBytes: bytes, pickedImageMime: mimeType, imageUrl: ''));
     } else {
+      bytes = state.pickedImageBytes;
+      if (bytes == null) {
+        showTopAlert('Upload an image or paste a URL first.', isError: true);
+        return;
+      }
       emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false));
     }
 
@@ -153,7 +143,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       },
       (prompt) async {
         emit(state.copyWith(isGenerating: false, showResult: true, generatedPrompt: prompt));
-        if (state.notifications) showTopAlert('Your prompt is ready!');
+        showTopAlert('Your prompt is ready!');
         if (state.autoSave) {
           await _addToHistory(prompt, capturedBytes, capturedMime);
         }
@@ -257,12 +247,6 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     final value = !state.smartEnhance;
     emit(state.copyWith(smartEnhance: value));
     settingsBox.put('itp_smart_enhance', value);
-  }
-
-  void toggleNotifications() {
-    final value = !state.notifications;
-    emit(state.copyWith(notifications: value));
-    settingsBox.put('itp_notifications', value);
   }
 
   void toggleDarkMode() {

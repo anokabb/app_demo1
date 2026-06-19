@@ -125,14 +125,6 @@ class _SettingsBody extends StatelessWidget {
                 c: c,
               ),
               _ToggleRow(
-                icon: Icons.notifications_outlined,
-                title: 'Notifications',
-                subtitle: 'Alert when a prompt is ready',
-                value: state.notifications,
-                onToggle: cubit.toggleNotifications,
-                c: c,
-              ),
-              _ToggleRow(
                 icon: Icons.dark_mode_outlined,
                 title: 'Dark mode',
                 subtitle: 'Use a dark color theme',

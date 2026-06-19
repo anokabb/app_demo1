@@ -29,7 +29,6 @@ class ImageToPromptState {
   final List<HistoryEntryModel> history;
   final bool autoSave;
   final bool smartEnhance;
-  final bool notifications;
   final bool darkMode;
   final String outputLanguage;
 
@@ -50,7 +49,6 @@ class ImageToPromptState {
     this.history = const [],
     this.autoSave = true,
     this.smartEnhance = true,
-    this.notifications = true,
     this.darkMode = false,
     this.outputLanguage = 'English',
   });
@@ -72,7 +70,6 @@ class ImageToPromptState {
     List<HistoryEntryModel>? history,
     bool? autoSave,
     bool? smartEnhance,
-    bool? notifications,
     bool? darkMode,
     String? outputLanguage,
   }) {
@@ -97,7 +94,6 @@ class ImageToPromptState {
       history: history ?? this.history,
       autoSave: autoSave ?? this.autoSave,
       smartEnhance: smartEnhance ?? this.smartEnhance,
-      notifications: notifications ?? this.notifications,
       darkMode: darkMode ?? this.darkMode,
       outputLanguage: outputLanguage ?? this.outputLanguage,
     );

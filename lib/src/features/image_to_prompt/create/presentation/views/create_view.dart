@@ -68,6 +68,13 @@ class _CreateViewState extends State<CreateView> {
     _urlController.clear();
   }
 
+  Future<void> _pasteLink() async {
+    final clip = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = clip?.text?.trim();
+    if (text == null || text.isEmpty) return;
+    cubit.setImageUrl(text);
+  }
+
   Future<void> _pickLanguage(PromptColors c) async {
     final selected = await showLanguagePickerSheet(context: context, c: c, current: cubit.state.outputLanguage);
     if (selected != null) cubit.setOutputLanguage(selected);
@@ -112,11 +119,30 @@ class _CreateViewState extends State<CreateView> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: Image.memory(
-                        state.pickedImageBytes!,
-                        width: double.infinity,
-                        height: 220,
-                        fit: BoxFit.cover,
+                      child: Builder(
+                        builder: (_) {
+                          final preview = Image.memory(
+                            state.pickedImageBytes!,
+                            width: double.infinity,
+                            height: 220,
+                            fit: BoxFit.cover,
+                          );
+                          // A pasted URL takes priority over the picked image at generate
+                          // time, so grey out the preview instead of discarding it.
+                          if (state.imageUrl.isEmpty) return preview;
+                          return Opacity(
+                            opacity: 0.4,
+                            child: ColorFiltered(
+                              colorFilter: const ColorFilter.matrix(<double>[
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0, 0, 0, 1, 0,
+                              ]),
+                              child: preview,
+                            ),
+                          );
+                        },
                       ),
                     ),
                     Positioned(
@@ -251,7 +277,10 @@ class _CreateViewState extends State<CreateView> {
                         ),
                       ),
                     ),
-                    Icon(Icons.link, color: c.muted, size: 22),
+                    GestureDetector(
+                      onTap: () => _pasteLink(),
+                      child: Icon(Icons.link, color: c.muted, size: 22),
+                    ),
                   ],
                 ),
               ),

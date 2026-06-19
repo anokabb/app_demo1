@@ -53,6 +53,7 @@ class RemoteConfigService {
       RemoteConfigKeys.enableDataDeletion: true,
       RemoteConfigKeys.accountDeletionUrl: '',
       RemoteConfigKeys.forceUpdate: false,
+      RemoteConfigKeys.geminiApiKey: '',
 
       // RevenueCat Config defaults
       RemoteConfigKeys.revenueIOSApiKey: '',
@@ -79,6 +80,7 @@ class RemoteConfigService {
         enableDataDeletion: _remoteConfig.getBool(RemoteConfigKeys.enableDataDeletion),
         accountDeletionUrl: _remoteConfig.getString(RemoteConfigKeys.accountDeletionUrl),
         forceUpdate: _remoteConfig.getBool(RemoteConfigKeys.forceUpdate),
+        geminiApiKey: _remoteConfig.getString(RemoteConfigKeys.geminiApiKey),
       ),
       revenueCat: RevenueCatConfigModel(
         revenueIOSApiKey: _remoteConfig.getString(RemoteConfigKeys.revenueIOSApiKey),

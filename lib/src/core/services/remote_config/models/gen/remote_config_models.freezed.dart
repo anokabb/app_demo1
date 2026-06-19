@@ -40,6 +40,9 @@ abstract class $RemoteConfigModelCopyWith<$Res> {
       _$RemoteConfigModelCopyWithImpl<$Res, RemoteConfigModel>;
   @useResult
   $Res call({SettingsConfigModel settings, RevenueCatConfigModel revenueCat});
+
+  $SettingsConfigModelCopyWith<$Res> get settings;
+  $RevenueCatConfigModelCopyWith<$Res> get revenueCat;
 }
 
 /// @nodoc
@@ -52,6 +55,8 @@ class _$RemoteConfigModelCopyWithImpl<$Res, $Val extends RemoteConfigModel>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of RemoteConfigModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -69,6 +74,26 @@ class _$RemoteConfigModelCopyWithImpl<$Res, $Val extends RemoteConfigModel>
               as RevenueCatConfigModel,
     ) as $Val);
   }
+
+  /// Create a copy of RemoteConfigModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SettingsConfigModelCopyWith<$Res> get settings {
+    return $SettingsConfigModelCopyWith<$Res>(_value.settings, (value) {
+      return _then(_value.copyWith(settings: value) as $Val);
+    });
+  }
+
+  /// Create a copy of RemoteConfigModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $RevenueCatConfigModelCopyWith<$Res> get revenueCat {
+    return $RevenueCatConfigModelCopyWith<$Res>(_value.revenueCat, (value) {
+      return _then(_value.copyWith(revenueCat: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -80,6 +105,11 @@ abstract class _$$RemoteConfigModelImplCopyWith<$Res>
   @override
   @useResult
   $Res call({SettingsConfigModel settings, RevenueCatConfigModel revenueCat});
+
+  @override
+  $SettingsConfigModelCopyWith<$Res> get settings;
+  @override
+  $RevenueCatConfigModelCopyWith<$Res> get revenueCat;
 }
 
 /// @nodoc
@@ -90,6 +120,8 @@ class __$$RemoteConfigModelImplCopyWithImpl<$Res>
       $Res Function(_$RemoteConfigModelImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of RemoteConfigModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -157,7 +189,9 @@ class _$RemoteConfigModelImpl implements _RemoteConfigModel {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$RemoteConfigModelImplToJson(this);
+    return _$$RemoteConfigModelImplToJson(
+      this,
+    );
   }
 }
 
@@ -233,6 +267,8 @@ class _$RevenueCatConfigModelCopyWithImpl<$Res,
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of RevenueCatConfigModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -295,11 +331,12 @@ class __$$RevenueCatConfigModelImplCopyWithImpl<$Res>
     extends _$RevenueCatConfigModelCopyWithImpl<$Res,
         _$RevenueCatConfigModelImpl>
     implements _$$RevenueCatConfigModelImplCopyWith<$Res> {
-  __$$RevenueCatConfigModelImplCopyWithImpl(
-      _$RevenueCatConfigModelImpl _value,
+  __$$RevenueCatConfigModelImplCopyWithImpl(_$RevenueCatConfigModelImpl _value,
       $Res Function(_$RevenueCatConfigModelImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of RevenueCatConfigModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -421,18 +458,21 @@ class _$RevenueCatConfigModelImpl implements _RevenueCatConfigModel {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$RevenueCatConfigModelImplToJson(this);
+    return _$$RevenueCatConfigModelImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _RevenueCatConfigModel implements RevenueCatConfigModel {
   const factory _RevenueCatConfigModel(
-      {final String revenueIOSApiKey,
-      final String revenueAndroidApiKey,
-      final int freeLimit,
-      final int closeButtonDelay,
-      final bool showDiscountAfterPaywall,
-      final String hideDiscountPaywallForVersion}) = _$RevenueCatConfigModelImpl;
+          {final String revenueIOSApiKey,
+          final String revenueAndroidApiKey,
+          final int freeLimit,
+          final int closeButtonDelay,
+          final bool showDiscountAfterPaywall,
+          final String hideDiscountPaywallForVersion}) =
+      _$RevenueCatConfigModelImpl;
 
   factory _RevenueCatConfigModel.fromJson(Map<String, dynamic> json) =
       _$RevenueCatConfigModelImpl.fromJson;
@@ -464,15 +504,20 @@ SettingsConfigModel _$SettingsConfigModelFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$SettingsConfigModel {
+// Legal & Support URLs
   String get privacyPolicyUrl => throw _privateConstructorUsedError;
   String get termsOfServiceUrl => throw _privateConstructorUsedError;
   String get aboutUrl => throw _privateConstructorUsedError;
   String get helpAndSupportUrl => throw _privateConstructorUsedError;
-  String get contactUsEmail => throw _privateConstructorUsedError;
+  String get contactUsEmail =>
+      throw _privateConstructorUsedError; // Account management
   bool get enableAccountDeletion => throw _privateConstructorUsedError;
   bool get enableDataDeletion => throw _privateConstructorUsedError;
-  String get accountDeletionUrl => throw _privateConstructorUsedError;
-  bool get forceUpdate => throw _privateConstructorUsedError;
+  String get accountDeletionUrl =>
+      throw _privateConstructorUsedError; // App updates
+  bool get forceUpdate =>
+      throw _privateConstructorUsedError; // Third-party API keys
+  String get geminiApiKey => throw _privateConstructorUsedError;
 
   /// Serializes this SettingsConfigModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -499,12 +544,12 @@ abstract class $SettingsConfigModelCopyWith<$Res> {
       bool enableAccountDeletion,
       bool enableDataDeletion,
       String accountDeletionUrl,
-      bool forceUpdate});
+      bool forceUpdate,
+      String geminiApiKey});
 }
 
 /// @nodoc
-class _$SettingsConfigModelCopyWithImpl<$Res,
-        $Val extends SettingsConfigModel>
+class _$SettingsConfigModelCopyWithImpl<$Res, $Val extends SettingsConfigModel>
     implements $SettingsConfigModelCopyWith<$Res> {
   _$SettingsConfigModelCopyWithImpl(this._value, this._then);
 
@@ -513,6 +558,8 @@ class _$SettingsConfigModelCopyWithImpl<$Res,
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of SettingsConfigModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -525,6 +572,7 @@ class _$SettingsConfigModelCopyWithImpl<$Res,
     Object? enableDataDeletion = null,
     Object? accountDeletionUrl = null,
     Object? forceUpdate = null,
+    Object? geminiApiKey = null,
   }) {
     return _then(_value.copyWith(
       privacyPolicyUrl: null == privacyPolicyUrl
@@ -563,6 +611,10 @@ class _$SettingsConfigModelCopyWithImpl<$Res,
           ? _value.forceUpdate
           : forceUpdate // ignore: cast_nullable_to_non_nullable
               as bool,
+      geminiApiKey: null == geminiApiKey
+          ? _value.geminiApiKey
+          : geminiApiKey // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -584,7 +636,8 @@ abstract class _$$SettingsConfigModelImplCopyWith<$Res>
       bool enableAccountDeletion,
       bool enableDataDeletion,
       String accountDeletionUrl,
-      bool forceUpdate});
+      bool forceUpdate,
+      String geminiApiKey});
 }
 
 /// @nodoc
@@ -595,6 +648,8 @@ class __$$SettingsConfigModelImplCopyWithImpl<$Res>
       $Res Function(_$SettingsConfigModelImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of SettingsConfigModel
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -607,6 +662,7 @@ class __$$SettingsConfigModelImplCopyWithImpl<$Res>
     Object? enableDataDeletion = null,
     Object? accountDeletionUrl = null,
     Object? forceUpdate = null,
+    Object? geminiApiKey = null,
   }) {
     return _then(_$SettingsConfigModelImpl(
       privacyPolicyUrl: null == privacyPolicyUrl
@@ -645,6 +701,10 @@ class __$$SettingsConfigModelImplCopyWithImpl<$Res>
           ? _value.forceUpdate
           : forceUpdate // ignore: cast_nullable_to_non_nullable
               as bool,
+      geminiApiKey: null == geminiApiKey
+          ? _value.geminiApiKey
+          : geminiApiKey // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -661,11 +721,13 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
       this.enableAccountDeletion = true,
       this.enableDataDeletion = true,
       this.accountDeletionUrl = '',
-      this.forceUpdate = false});
+      this.forceUpdate = false,
+      this.geminiApiKey = ''});
 
   factory _$SettingsConfigModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$SettingsConfigModelImplFromJson(json);
 
+// Legal & Support URLs
   @override
   @JsonKey()
   final String privacyPolicyUrl;
@@ -681,6 +743,7 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
   @override
   @JsonKey()
   final String contactUsEmail;
+// Account management
   @override
   @JsonKey()
   final bool enableAccountDeletion;
@@ -690,13 +753,18 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
   @override
   @JsonKey()
   final String accountDeletionUrl;
+// App updates
   @override
   @JsonKey()
   final bool forceUpdate;
+// Third-party API keys
+  @override
+  @JsonKey()
+  final String geminiApiKey;
 
   @override
   String toString() {
-    return 'SettingsConfigModel(privacyPolicyUrl: $privacyPolicyUrl, termsOfServiceUrl: $termsOfServiceUrl, aboutUrl: $aboutUrl, helpAndSupportUrl: $helpAndSupportUrl, contactUsEmail: $contactUsEmail, enableAccountDeletion: $enableAccountDeletion, enableDataDeletion: $enableDataDeletion, accountDeletionUrl: $accountDeletionUrl, forceUpdate: $forceUpdate)';
+    return 'SettingsConfigModel(privacyPolicyUrl: $privacyPolicyUrl, termsOfServiceUrl: $termsOfServiceUrl, aboutUrl: $aboutUrl, helpAndSupportUrl: $helpAndSupportUrl, contactUsEmail: $contactUsEmail, enableAccountDeletion: $enableAccountDeletion, enableDataDeletion: $enableDataDeletion, accountDeletionUrl: $accountDeletionUrl, forceUpdate: $forceUpdate, geminiApiKey: $geminiApiKey)';
   }
 
   @override
@@ -721,7 +789,9 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
             (identical(other.accountDeletionUrl, accountDeletionUrl) ||
                 other.accountDeletionUrl == accountDeletionUrl) &&
             (identical(other.forceUpdate, forceUpdate) ||
-                other.forceUpdate == forceUpdate));
+                other.forceUpdate == forceUpdate) &&
+            (identical(other.geminiApiKey, geminiApiKey) ||
+                other.geminiApiKey == geminiApiKey));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -736,21 +806,23 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
       enableAccountDeletion,
       enableDataDeletion,
       accountDeletionUrl,
-      forceUpdate);
+      forceUpdate,
+      geminiApiKey);
 
   /// Create a copy of SettingsConfigModel
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$SettingsConfigModelImplCopyWith<_$SettingsConfigModelImpl>
-      get copyWith =>
-          __$$SettingsConfigModelImplCopyWithImpl<_$SettingsConfigModelImpl>(
-              this, _$identity);
+  _$$SettingsConfigModelImplCopyWith<_$SettingsConfigModelImpl> get copyWith =>
+      __$$SettingsConfigModelImplCopyWithImpl<_$SettingsConfigModelImpl>(
+          this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$SettingsConfigModelImplToJson(this);
+    return _$$SettingsConfigModelImplToJson(
+      this,
+    );
   }
 }
 
@@ -764,11 +836,13 @@ abstract class _SettingsConfigModel implements SettingsConfigModel {
       final bool enableAccountDeletion,
       final bool enableDataDeletion,
       final String accountDeletionUrl,
-      final bool forceUpdate}) = _$SettingsConfigModelImpl;
+      final bool forceUpdate,
+      final String geminiApiKey}) = _$SettingsConfigModelImpl;
 
   factory _SettingsConfigModel.fromJson(Map<String, dynamic> json) =
       _$SettingsConfigModelImpl.fromJson;
 
+// Legal & Support URLs
   @override
   String get privacyPolicyUrl;
   @override
@@ -778,20 +852,22 @@ abstract class _SettingsConfigModel implements SettingsConfigModel {
   @override
   String get helpAndSupportUrl;
   @override
-  String get contactUsEmail;
+  String get contactUsEmail; // Account management
   @override
   bool get enableAccountDeletion;
   @override
   bool get enableDataDeletion;
   @override
-  String get accountDeletionUrl;
+  String get accountDeletionUrl; // App updates
   @override
-  bool get forceUpdate;
+  bool get forceUpdate; // Third-party API keys
+  @override
+  String get geminiApiKey;
 
   /// Create a copy of SettingsConfigModel
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$SettingsConfigModelImplCopyWith<_$SettingsConfigModelImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  _$$SettingsConfigModelImplCopyWith<_$SettingsConfigModelImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }

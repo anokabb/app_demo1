@@ -29,7 +29,7 @@ Map<String, dynamic> _$$RemoteConfigModelImplToJson(
 _$RevenueCatConfigModelImpl _$$RevenueCatConfigModelImplFromJson(
         Map<String, dynamic> json) =>
     _$RevenueCatConfigModelImpl(
-      revenueIOSApiKey: json['revenue_ios_api_key'] as String? ?? '',
+      revenueIOSApiKey: json['revenue_i_o_s_api_key'] as String? ?? '',
       revenueAndroidApiKey: json['revenue_android_api_key'] as String? ?? '',
       freeLimit: (json['free_limit'] as num?)?.toInt() ?? 3,
       closeButtonDelay: (json['close_button_delay'] as num?)?.toInt() ?? 5,
@@ -42,7 +42,7 @@ _$RevenueCatConfigModelImpl _$$RevenueCatConfigModelImplFromJson(
 Map<String, dynamic> _$$RevenueCatConfigModelImplToJson(
         _$RevenueCatConfigModelImpl instance) =>
     <String, dynamic>{
-      'revenue_ios_api_key': instance.revenueIOSApiKey,
+      'revenue_i_o_s_api_key': instance.revenueIOSApiKey,
       'revenue_android_api_key': instance.revenueAndroidApiKey,
       'free_limit': instance.freeLimit,
       'close_button_delay': instance.closeButtonDelay,
@@ -63,6 +63,7 @@ _$SettingsConfigModelImpl _$$SettingsConfigModelImplFromJson(
       enableDataDeletion: json['enable_data_deletion'] as bool? ?? true,
       accountDeletionUrl: json['account_deletion_url'] as String? ?? '',
       forceUpdate: json['force_update'] as bool? ?? false,
+      geminiApiKey: json['gemini_api_key'] as String? ?? '',
     );
 
 Map<String, dynamic> _$$SettingsConfigModelImplToJson(
@@ -77,4 +78,5 @@ Map<String, dynamic> _$$SettingsConfigModelImplToJson(
       'enable_data_deletion': instance.enableDataDeletion,
       'account_deletion_url': instance.accountDeletionUrl,
       'force_update': instance.forceUpdate,
+      'gemini_api_key': instance.geminiApiKey,
     };

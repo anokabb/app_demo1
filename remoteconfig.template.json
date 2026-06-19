@@ -45,6 +45,11 @@
       "valueType": "BOOLEAN",
       "description": "Forces users onto the update screen when true"
     },
+    "gemini_api_key": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "Google Gemini API key used by the image-to-prompt feature"
+    },
     "revenue_ios_api_key": {
       "defaultValue": { "value": "" },
       "valueType": "STRING",

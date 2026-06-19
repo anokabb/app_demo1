@@ -42,22 +42,14 @@ class MockImagePromptRepo implements ImagePromptRepo {
   ];
 
   @override
-  Future<Either<AppError, String>> generatePrompt({
+  Stream<Either<AppError, String>> generatePromptStream({
     required Uint8List imageBytes,
     required String mimeType,
     required ImagePromptModelTier tier,
     required bool smartEnhance,
     required String outputLanguage,
-  }) async {
-    _log.i('[MOCK] generatePrompt tier=${tier.name} lang=$outputLanguage bytes=${imageBytes.length}');
-
-    // Simulate model latency — faster tiers respond quicker.
-    final delayMs = switch (tier) {
-      ImagePromptModelTier.fast => 600,
-      ImagePromptModelTier.balanced => 1200,
-      ImagePromptModelTier.detailed => 2000,
-    };
-    await Future.delayed(Duration(milliseconds: delayMs + _rand.nextInt(400)));
+  }) async* {
+    _log.i('[MOCK] generatePromptStream tier=${tier.name} lang=$outputLanguage bytes=${imageBytes.length}');
 
     final subject = _subjects[_rand.nextInt(_subjects.length)];
     final style = _styles[_rand.nextInt(_styles.length)];
@@ -73,6 +65,20 @@ class MockImagePromptRepo implements ImagePromptRepo {
       buffer.write(' [output language: $outputLanguage]');
     }
 
-    return Right(buffer.toString());
+    // Simulate token-by-token streaming, word by word — faster tiers stream quicker.
+    final delayMs = switch (tier) {
+      ImagePromptModelTier.fast => 40,
+      ImagePromptModelTier.balanced => 70,
+      ImagePromptModelTier.detailed => 100,
+    };
+
+    final words = buffer.toString().split(' ');
+    final streamed = StringBuffer();
+    for (var i = 0; i < words.length; i++) {
+      await Future.delayed(Duration(milliseconds: delayMs + _rand.nextInt(40)));
+      if (i > 0) streamed.write(' ');
+      streamed.write(words[i]);
+      yield Right(streamed.toString());
+    }
   }
 }

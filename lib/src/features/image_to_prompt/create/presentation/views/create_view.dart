@@ -12,7 +12,6 @@ import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/language_picker_sheet.dart';
-import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/typewriter_text.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -513,8 +512,8 @@ class _CreateViewState extends State<CreateView> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      TypewriterText(
-                        text: state.generatedPrompt,
+                      Text(
+                        state.generatedPrompt,
                         style: TextStyle(fontSize: 15, height: 1.5, color: c.ink),
                       ),
                     ],

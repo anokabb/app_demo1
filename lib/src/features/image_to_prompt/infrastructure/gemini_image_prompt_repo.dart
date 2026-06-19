@@ -27,30 +27,31 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
   };
 
   @override
-  Future<Either<AppError, String>> generatePrompt({
+  Stream<Either<AppError, String>> generatePromptStream({
     required Uint8List imageBytes,
     required String mimeType,
     required ImagePromptModelTier tier,
     required bool smartEnhance,
     required String outputLanguage,
-  }) async {
+  }) async* {
+    final apiKey = locator<RemoteConfigService>().data.settings.geminiApiKey;
+    if (apiKey.isEmpty) {
+      yield left(const AppError.server(
+        message: 'Missing Gemini API key. Set gemini_api_key in Remote Config.',
+      ));
+      return;
+    }
+
+    final modelId = _modelIds[tier]!;
+    final instruction = _buildInstruction(
+      smartEnhance: smartEnhance,
+      outputLanguage: outputLanguage,
+    );
+
     try {
-      final apiKey = locator<RemoteConfigService>().data.settings.geminiApiKey;
-      if (apiKey.isEmpty) {
-        return left(const AppError.server(
-          message: 'Missing Gemini API key. Set gemini_api_key in Remote Config.',
-        ));
-      }
-
-      final modelId = _modelIds[tier]!;
-      final instruction = _buildInstruction(
-        smartEnhance: smartEnhance,
-        outputLanguage: outputLanguage,
-      );
-
-      final response = await _dio.post(
-        '/models/$modelId:generateContent',
-        queryParameters: {'key': apiKey},
+      final response = await _dio.post<ResponseBody>(
+        '/models/$modelId:streamGenerateContent',
+        queryParameters: {'key': apiKey, 'alt': 'sse'},
         data: {
           'contents': [
             {
@@ -71,25 +72,43 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
             'maxOutputTokens': smartEnhance ? 400 : 180,
           },
         },
+        options: Options(responseType: ResponseType.stream),
       );
 
-      final data = response.data;
-      final candidates = data is Map ? data['candidates'] as List? : null;
-      if (candidates == null || candidates.isEmpty) {
-        return left(const AppError.unknown());
+      final buffer = StringBuffer();
+      final lines = response.data!.stream
+          .cast<List<int>>()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+
+      await for (final line in lines) {
+        if (!line.startsWith('data:')) continue;
+        final payload = line.substring(5).trim();
+        if (payload.isEmpty) continue;
+
+        Map? json;
+        try {
+          json = jsonDecode(payload) as Map?;
+        } catch (_) {
+          continue; // partial/malformed SSE chunk — wait for the rest
+        }
+
+        final candidates = json?['candidates'] as List?;
+        if (candidates == null || candidates.isEmpty) continue;
+        final parts = (candidates.first as Map)['content']?['parts'] as List?;
+        final delta = parts?.map((p) => (p as Map)['text']?.toString() ?? '').join() ?? '';
+        if (delta.isEmpty) continue;
+
+        buffer.write(delta);
+        yield right(buffer.toString());
       }
 
-      final parts = (candidates.first as Map)['content']?['parts'] as List?;
-      final text = parts?.map((p) => (p as Map)['text']?.toString() ?? '').join().trim();
-
-      if (text == null || text.isEmpty) {
-        return left(const AppError.unknown());
+      if (buffer.isEmpty) {
+        yield left(const AppError.unknown());
       }
-
-      return right(text);
     } catch (e) {
-      _log.e('[ERROR generatePrompt] ${e.toString()}');
-      return left(AppError.fromException(e));
+      _log.e('[ERROR generatePromptStream] ${e.toString()}');
+      yield left(AppError.fromException(e));
     }
   }
 

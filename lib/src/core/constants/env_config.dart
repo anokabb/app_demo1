@@ -12,9 +12,9 @@ class EnvConfig {
   static bool get showEnvBanner => devBox.get('showEnvBanner', defaultValue: kDebugMode ? true : false);
   static String get currentEnv => devBox.get(
         'env',
-        defaultValue: String.fromEnvironment(
+        defaultValue: const String.fromEnvironment(
           'ENV',
-          defaultValue: ConfigEnvironments.staging.name,
+          defaultValue: 'staging',
         ),
       );
 

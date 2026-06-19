@@ -39,11 +39,8 @@ void setupLocator() {
   // locator.registerLazySingleton<AuthApi>(() => AuthApi(locator<Dio>()));
 
   // 3. Repositories
-  if (isMockTesting) {
-    locator.registerLazySingleton<AuthRepo>(() => MockAuthRepo());
-  } else {
-    // locator.registerLazySingleton<AuthRepo>(() => AuthRepoImpl(locator<AuthApi>()));
-  }
+  // No real AuthRepo implementation exists yet, so always use the mock until a backend is wired up.
+  locator.registerLazySingleton<AuthRepo>(() => MockAuthRepo());
 
   // 3b. Image-to-prompt provider — swap this single line to switch providers
   // (e.g. `OpenAiImagePromptRepo()`); everything else depends on `ImagePromptRepo`.

@@ -14,7 +14,6 @@ class EnvConfig {
   static const String _backendEnvironmentKey = 'backend_environment';
 
   static String get baseUrl => dotenv.get('BASE_URL', fallback: '');
-  static String get GEMINI_API_KEY => dotenv.get('GEMINI_API_KEY', fallback: '');
   static bool get showEnvBanner => devBox.get('showEnvBanner', defaultValue: kDebugMode ? true : false);
   static String get currentEnv => devBox.get(
         'env',

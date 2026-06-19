@@ -1,0 +1,86 @@
+{
+  "parameters": {
+    "privacy_policy_url": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "Privacy policy URL shown in Settings"
+    },
+    "terms_of_service_url": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "Terms of service URL shown in Settings"
+    },
+    "about_url": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "About page URL shown in Settings"
+    },
+    "help_and_support_url": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "Help & support URL shown in Settings"
+    },
+    "contact_us_email": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "Contact email shown in Settings"
+    },
+    "enable_account_deletion": {
+      "defaultValue": { "value": "true" },
+      "valueType": "BOOLEAN",
+      "description": "Whether the account-deletion flow is enabled"
+    },
+    "enable_data_deletion": {
+      "defaultValue": { "value": "true" },
+      "valueType": "BOOLEAN",
+      "description": "Whether the data-deletion flow is enabled"
+    },
+    "account_deletion_url": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "External URL for account deletion, if used instead of in-app flow"
+    },
+    "force_update": {
+      "defaultValue": { "value": "false" },
+      "valueType": "BOOLEAN",
+      "description": "Forces users onto the update screen when true"
+    },
+    "gemini_api_key": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "Google Gemini API key used by the image-to-prompt feature"
+    },
+    "revenue_ios_api_key": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "RevenueCat iOS API key"
+    },
+    "revenue_android_api_key": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "RevenueCat Android API key"
+    },
+    "free_limit": {
+      "defaultValue": { "value": "3" },
+      "valueType": "NUMBER",
+      "description": "Number of free uses before the paywall"
+    },
+    "close_button_delay": {
+      "defaultValue": { "value": "5" },
+      "valueType": "NUMBER",
+      "description": "Seconds before the paywall close button appears"
+    },
+    "show_discount_after_paywall": {
+      "defaultValue": { "value": "false" },
+      "valueType": "BOOLEAN",
+      "description": "Whether to show a discount offer after the paywall is dismissed"
+    },
+    "hide_discount_paywall_for_version": {
+      "defaultValue": { "value": "" },
+      "valueType": "STRING",
+      "description": "App version below which the discount paywall is hidden"
+    }
+  },
+  "parameterGroups": {},
+  "conditions": []
+}

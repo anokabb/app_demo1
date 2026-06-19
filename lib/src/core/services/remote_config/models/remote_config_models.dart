@@ -47,6 +47,9 @@ abstract class SettingsConfigModel with _$SettingsConfigModel {
 
     // App updates
     @Default(false) bool forceUpdate,
+
+    // Third-party API keys
+    @Default('') String geminiApiKey,
   }) = _SettingsConfigModel;
 
   factory SettingsConfigModel.fromJson(Map<String, dynamic> json) => _$SettingsConfigModelFromJson(json);
@@ -64,6 +67,7 @@ class RemoteConfigKeys {
   static const String accountDeletionUrl = 'account_deletion_url';
   static const String contactUsEmail = 'contact_us_email';
   static const String forceUpdate = 'force_update';
+  static const String geminiApiKey = 'gemini_api_key';
 
   // RevenueCat Config
   static const String revenueIOSApiKey = 'revenue_ios_api_key';

@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:flutter_app_template/src/core/constants/env_config.dart';
 import 'package:flutter_app_template/src/core/network/client/dio_factory.dart';
 import 'package:flutter_app_template/src/core/network/client/interceptors/logger_interceptor.dart';
 import 'package:flutter_app_template/src/core/network/models/app_error.dart';
+import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/logger/logger.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:fpdart/fpdart.dart';
 
@@ -34,10 +35,10 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
     required String outputLanguage,
   }) async {
     try {
-      final apiKey = EnvConfig.GEMINI_API_KEY;
+      final apiKey = locator<RemoteConfigService>().data.settings.geminiApiKey;
       if (apiKey.isEmpty) {
         return left(const AppError.server(
-          message: 'Missing Gemini API key. Add GEMINI_API_KEY to your env file.',
+          message: 'Missing Gemini API key. Set gemini_api_key in Remote Config.',
         ));
       }
 

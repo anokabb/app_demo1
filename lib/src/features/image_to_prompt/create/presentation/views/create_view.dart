@@ -55,8 +55,8 @@ class _CreateViewState extends State<CreateView> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final file = await AppImagePicker.showPopUp(context: context);
+  Future<void> _pickImage(PromptColors c) async {
+    final file = await AppImagePicker.showPopUp(context: context, c: c);
     if (file == null) return;
     final bytes = await file.readAsBytes();
     if (bytes.lengthInBytes > ImageUrlFetcher.maxBytes) {
@@ -138,7 +138,7 @@ class _CreateViewState extends State<CreateView> {
                       bottom: 10,
                       right: 10,
                       child: GestureDetector(
-                        onTap: state.isGenerating ? null : _pickImage,
+                        onTap: state.isGenerating ? null : () => _pickImage(c),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
@@ -161,7 +161,7 @@ class _CreateViewState extends State<CreateView> {
                 )
               else
                 GestureDetector(
-                  onTap: state.isGenerating ? null : _pickImage,
+                  onTap: state.isGenerating ? null : () => _pickImage(c),
                   child: DottedBorder(
                     borderType: BorderType.RRect,
                     radius: const Radius.circular(20),

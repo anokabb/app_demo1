@@ -84,7 +84,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fromGallery => 'من المعرض';
 
   @override
+  String get fromGallerySubtitle => 'اختر صورة موجودة';
+
+  @override
   String get takePhoto => 'التقاط صورة';
+
+  @override
+  String get takePhotoSubtitle => 'استخدم الكاميرا';
+
+  @override
+  String get uploadImage => 'ارفع صورتك';
 
   @override
   String get noImageSelected => 'لم يتم اختيار صورة';

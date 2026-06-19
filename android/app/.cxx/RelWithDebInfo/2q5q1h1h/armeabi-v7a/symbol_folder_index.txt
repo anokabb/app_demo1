@@ -1,0 +1,1 @@
+/Users/anouar/Desktop/apps/Freelance/flutter_app_template/build/app/intermediates/cxx/RelWithDebInfo/2q5q1h1h/obj/armeabi-v7a

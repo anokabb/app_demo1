@@ -4,10 +4,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_colors.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AppImagePicker extends StatefulWidget {
@@ -28,99 +29,51 @@ class AppImagePicker extends StatefulWidget {
   @override
   State<AppImagePicker> createState() => _AppImagePickerState();
 
-  static Future<File?> showPopUp({required BuildContext context}) async {
-    return await showModalBottomSheet(
+  static Future<File?> showPopUp({
+    required BuildContext context,
+    required PromptColors c,
+  }) async {
+    return await SlideUpPopUp.show<File?>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return Container(
-          width: double.infinity,
-          height: 180,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: context.theme.appColors.secondaryBackground,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: SafeArea(
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      context.pop(await _pickImage(ImageSource.camera));
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: context.theme.appColors.background,
-                        border: Border.all(
-                          color: context.theme.appColors.borderColor,
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Icon(
-                              Icons.camera_alt,
-                              size: 40,
-                              color: context.theme.appColors.primary,
-                            ),
-                            // const SizedBox(height: 10),
-                            Text(
-                              context.localization.takePhoto,
-                              style: context.theme.appTextTheme.title4,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+      backgroundColor: c.card,
+      borderRadius: BorderRadius.circular(24),
+      child: Builder(
+        builder: (context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  context.localization.uploadImage,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: c.ink),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      context.pop(await _pickImage(ImageSource.gallery));
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: context.theme.appColors.background,
-                        border: Border.all(
-                          color: context.theme.appColors.borderColor,
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Icon(
-                              Icons.image,
-                              size: 40,
-                              color: context.theme.appColors.primary,
-                            ),
-                            // const SizedBox(height: 10),
-                            Text(
-                              context.localization.fromGallery,
-                              style: context.theme.appTextTheme.title4,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+            _PickerOption(
+              c: c,
+              icon: Icons.camera_alt_rounded,
+              label: context.localization.takePhoto,
+              subtitle: context.localization.takePhotoSubtitle,
+              onTap: () async {
+                Navigator.of(context).pop(await _pickImage(ImageSource.camera));
+              },
+            ),
+            Divider(color: c.line, height: 1, indent: 20, endIndent: 20),
+            _PickerOption(
+              c: c,
+              icon: Icons.photo_library_rounded,
+              label: context.localization.fromGallery,
+              subtitle: context.localization.fromGallerySubtitle,
+              onTap: () async {
+                Navigator.of(context).pop(await _pickImage(ImageSource.gallery));
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
     );
   }
 
@@ -130,6 +83,63 @@ class AppImagePicker extends StatefulWidget {
       return File(file.path);
     }
     return null;
+  }
+}
+
+class _PickerOption extends StatelessWidget {
+  final PromptColors c;
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _PickerOption({
+    required this.c,
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: c.iconBox,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: c.accentText, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.ink),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: c.muted),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: c.muted, size: 22),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -146,7 +156,10 @@ class _AppImagePickerState extends State<AppImagePicker> {
           aspectRatio: widget.aspectRatio,
           child: CupertinoButton(
             onPressed: () {
-              AppImagePicker.showPopUp(context: context).then(
+              AppImagePicker.showPopUp(
+                context: context,
+                c: PromptColors(Theme.of(context).brightness == Brightness.dark),
+              ).then(
                 (file) {
                   if (file != null) {
                     widget.onImagePicked?.call(file.path);

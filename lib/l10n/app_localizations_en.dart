@@ -84,7 +84,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fromGallery => 'From Gallery';
 
   @override
+  String get fromGallerySubtitle => 'Choose an existing photo';
+
+  @override
   String get takePhoto => 'Take Photo';
+
+  @override
+  String get takePhotoSubtitle => 'Use your camera';
+
+  @override
+  String get uploadImage => 'Upload Your Image';
 
   @override
   String get noImageSelected => 'No Image Selected';

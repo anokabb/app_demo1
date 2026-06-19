@@ -12,6 +12,7 @@ import 'package:flutter_app_template/src/features/auth/presentation/cubit/auth_c
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/gemini_image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/mock_image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -46,7 +47,11 @@ void setupLocator() {
 
   // 3b. Image-to-prompt provider — swap this single line to switch providers
   // (e.g. `OpenAiImagePromptRepo()`); everything else depends on `ImagePromptRepo`.
-  locator.registerLazySingleton<ImagePromptRepo>(() => GeminiImagePromptRepo());
+  if (isMockTesting) {
+    locator.registerLazySingleton<ImagePromptRepo>(() => MockImagePromptRepo());
+  } else {
+    locator.registerLazySingleton<ImagePromptRepo>(() => GeminiImagePromptRepo());
+  }
 
   // 4. Cubits
   locator.registerLazySingleton<ThemeCubit>(() => ThemeCubit());

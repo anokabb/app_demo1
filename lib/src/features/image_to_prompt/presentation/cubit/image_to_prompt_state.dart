@@ -33,6 +33,8 @@ class ImageToPromptState {
   final bool smartEnhance;
   final bool darkMode;
   final String outputLanguage;
+  final int scrollToTopTab;
+  final int scrollToTopTick;
 
   const ImageToPromptState({
     this.selectedModel = ImagePromptModelTier.balanced,
@@ -55,6 +57,8 @@ class ImageToPromptState {
     this.smartEnhance = true,
     this.darkMode = false,
     this.outputLanguage = 'English',
+    this.scrollToTopTab = -1,
+    this.scrollToTopTick = 0,
   });
 
   ImageToPromptState copyWith({
@@ -78,6 +82,8 @@ class ImageToPromptState {
     bool? smartEnhance,
     bool? darkMode,
     String? outputLanguage,
+    int? scrollToTopTab,
+    int? scrollToTopTick,
   }) {
     return ImageToPromptState(
       selectedModel: selectedModel ?? this.selectedModel,
@@ -105,6 +111,8 @@ class ImageToPromptState {
       smartEnhance: smartEnhance ?? this.smartEnhance,
       darkMode: darkMode ?? this.darkMode,
       outputLanguage: outputLanguage ?? this.outputLanguage,
+      scrollToTopTab: scrollToTopTab ?? this.scrollToTopTab,
+      scrollToTopTick: scrollToTopTick ?? this.scrollToTopTick,
     );
   }
 

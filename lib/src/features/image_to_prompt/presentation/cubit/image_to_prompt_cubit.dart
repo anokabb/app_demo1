@@ -80,6 +80,10 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
   void setHistFilter(int index) => emit(state.copyWith(histFilter: index));
 
+  void requestScrollToTop(int tabIndex) {
+    emit(state.copyWith(scrollToTopTab: tabIndex, scrollToTopTick: state.scrollToTopTick + 1));
+  }
+
   // Passing null clears the filter; the Unset sentinel forces copyWith to write
   // null rather than treating the omitted arg as "keep current value".
   void setHistTier(ImagePromptModelTier? tier) =>

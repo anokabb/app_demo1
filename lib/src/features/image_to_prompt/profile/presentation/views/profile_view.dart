@@ -4,9 +4,17 @@ import 'package:flutter_app_template/src/features/image_to_prompt/presentation/c
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class ProfileView extends StatelessWidget {
+class ProfileView extends StatefulWidget {
   static const routeName = '/image-to-prompt/profile';
   const ProfileView({super.key});
+
+  @override
+  State<ProfileView> createState() => _ProfileViewState();
+}
+
+class _ProfileViewState extends State<ProfileView> {
+  final cubit = locator<ImageToPromptCubit>();
+  final _scrollController = ScrollController();
 
   static const _menuItems = [
     (icon: Icons.bookmark_outline, label: 'Saved Prompts'),
@@ -17,10 +25,21 @@ class ProfileView extends StatelessWidget {
   ];
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final cubit = locator<ImageToPromptCubit>();
-    return BlocBuilder<ImageToPromptCubit, ImageToPromptState>(
+    return BlocConsumer<ImageToPromptCubit, ImageToPromptState>(
       bloc: cubit,
+      listenWhen: (prev, curr) => curr.scrollToTopTab == 2 && curr.scrollToTopTick != prev.scrollToTopTick,
+      listener: (context, state) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(0, duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+        }
+      },
       builder: (context, state) {
         final c = PromptColors(state.darkMode);
         final stats = [
@@ -31,6 +50,7 @@ class ProfileView extends StatelessWidget {
         return Scaffold(
           backgroundColor: c.page,
           body: ListView(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(22, 8, 22, 130),
             children: [
               Text(

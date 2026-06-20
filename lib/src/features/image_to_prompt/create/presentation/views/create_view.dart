@@ -43,11 +43,13 @@ class CreateView extends StatefulWidget {
 class _CreateViewState extends State<CreateView> with SingleTickerProviderStateMixin {
   final cubit = locator<ImageToPromptCubit>();
   final _urlController = TextEditingController();
+  final _scrollController = ScrollController();
 
   late final AnimationController _resultController;
   late final Animation<Offset> _resultSlideAnimation;
   late final Animation<double> _resultFadeAnimation;
   bool _wasShowingResult = false;
+  late int _lastScrollTopTick = cubit.state.scrollToTopTick;
   final _resultKey = GlobalKey();
 
   void _scrollToResult() {
@@ -84,6 +86,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
   @override
   void dispose() {
     _urlController.dispose();
+    _scrollController.dispose();
     _resultController.dispose();
     super.dispose();
   }
@@ -123,6 +126,13 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
           Future.delayed(const Duration(milliseconds: 100), _scrollToResult);
         }
         _wasShowingResult = state.showResult;
+
+        if (state.scrollToTopTab == 0 && state.scrollToTopTick != _lastScrollTopTick) {
+          _lastScrollTopTick = state.scrollToTopTick;
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(0, duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+          }
+        }
       },
       builder: (context, state) {
         if (_urlController.text != state.imageUrl) {
@@ -134,6 +144,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
         return Scaffold(
           backgroundColor: c.page,
           body: ListView(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(22, 8, 22, 130),
             children: [
               Text(

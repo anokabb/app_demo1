@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
@@ -104,6 +106,21 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
     });
   }
 
+  void _openImagePreview(Uint8List bytes) {
+    Navigator.of(context).push(PageRouteBuilder(
+      opaque: false,
+      barrierColor: Colors.black,
+      transitionDuration: const Duration(milliseconds: 220),
+      reverseTransitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return FadeTransition(
+          opacity: animation,
+          child: _ImagePreviewView(imageBytes: bytes),
+        );
+      },
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ImageToPromptCubit, ImageToPromptState>(
@@ -148,15 +165,20 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                   offset: Offset(0, parallax),
                                   child: Transform.scale(
                                     scale: _heroScale.value,
-                                    child: SizedBox(
-                                      height: imageHeight,
-                                      width: double.infinity,
-                                      child: imageBytes != null && imageBytes.isNotEmpty
-                                          ? Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity)
-                                          : Container(
-                                              color: c.field,
-                                              child: Icon(Icons.image_outlined, size: 56, color: c.muted),
-                                            ),
+                                    child: GestureDetector(
+                                      onTap: imageBytes != null && imageBytes.isNotEmpty
+                                          ? () => _openImagePreview(imageBytes)
+                                          : null,
+                                      child: SizedBox(
+                                        height: imageHeight,
+                                        width: double.infinity,
+                                        child: imageBytes != null && imageBytes.isNotEmpty
+                                            ? Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity)
+                                            : Container(
+                                                color: c.field,
+                                                child: Icon(Icons.image_outlined, size: 56, color: c.muted),
+                                              ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -308,6 +330,52 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
           ),
         );
       },
+    );
+  }
+}
+
+class _ImagePreviewView extends StatelessWidget {
+  final Uint8List imageBytes;
+
+  const _ImagePreviewView({required this.imageBytes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 5,
+              child: Center(
+                child: Image.memory(imageBytes, fit: BoxFit.contain),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

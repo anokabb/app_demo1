@@ -31,19 +31,27 @@ class HistoryView extends StatefulWidget {
 class _HistoryViewState extends State<HistoryView> {
   final cubit = locator<ImageToPromptCubit>();
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
 
   static const _filters = ['All', 'Today', 'This Week'];
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ImageToPromptCubit, ImageToPromptState>(
+    return BlocConsumer<ImageToPromptCubit, ImageToPromptState>(
       bloc: cubit,
+      listenWhen: (prev, curr) => curr.scrollToTopTab == 1 && curr.scrollToTopTick != prev.scrollToTopTick,
+      listener: (context, state) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(0, duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+        }
+      },
       builder: (context, state) {
         final c = PromptColors(state.darkMode);
         final groups = state.groupedHistory;
@@ -51,6 +59,7 @@ class _HistoryViewState extends State<HistoryView> {
         return Scaffold(
           backgroundColor: c.page,
           body: ListView(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(22, 8, 22, 130),
             children: [
               Text(

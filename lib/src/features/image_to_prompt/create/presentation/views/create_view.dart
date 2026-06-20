@@ -47,6 +47,19 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
   late final Animation<Offset> _resultSlideAnimation;
   late final Animation<double> _resultFadeAnimation;
   bool _wasShowingResult = false;
+  final _resultKey = GlobalKey();
+
+  void _scrollToResult() {
+    final resultContext = _resultKey.currentContext;
+    if (resultContext != null) {
+      Scrollable.ensureVisible(
+        resultContext,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.1,
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -106,6 +119,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
       listener: (context, state) {
         if (state.showResult && !_wasShowingResult) {
           _resultController.forward(from: 0);
+          Future.delayed(const Duration(milliseconds: 100), _scrollToResult);
         }
         _wasShowingResult = state.showResult;
       },
@@ -452,6 +466,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
               if (state.showResult) ...[
                 const SizedBox(height: 18),
                 SlideTransition(
+                  key: _resultKey,
                   position: _resultSlideAnimation,
                   child: FadeTransition(
                     opacity: _resultFadeAnimation,

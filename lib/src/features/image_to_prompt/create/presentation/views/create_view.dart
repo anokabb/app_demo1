@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:cross_file/cross_file.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,6 +51,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
   late final Animation<Offset> _resultSlideAnimation;
   late final Animation<double> _resultFadeAnimation;
   bool _wasShowingResult = false;
+  bool _isDragging = false;
   late int _lastScrollTopTick = cubit.state.scrollToTopTick;
   final _resultKey = GlobalKey();
 
@@ -94,6 +97,19 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
   Future<void> _pickImage(PromptColors c) async {
     final file = await AppImagePicker.showPopUp(context: context, c: c);
     if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (bytes.lengthInBytes > ImageUrlFetcher.maxBytes) {
+      if (!mounted) return;
+      showTopAlert('Image is too large (max 8MB).', isError: true);
+      return;
+    }
+    cubit.setPickedImage(bytes, _guessMimeType(file.name));
+    _urlController.clear();
+  }
+
+  Future<void> _handleDroppedFiles(List<XFile> files) async {
+    if (files.isEmpty) return;
+    final file = files.first;
     final bytes = await file.readAsBytes();
     if (bytes.lengthInBytes > ImageUrlFetcher.maxBytes) {
       if (!mounted) return;
@@ -165,8 +181,12 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
               const SizedBox(height: 26),
 
               // Upload zone / preview
-              if (state.pickedImageBytes != null)
-                Stack(
+              DropTarget(
+                onDragDone: (detail) => _handleDroppedFiles(detail.files),
+                onDragEntered: (_) => setState(() => _isDragging = true),
+                onDragExited: (_) => setState(() => _isDragging = false),
+                child: state.pickedImageBytes != null
+                    ? Stack(
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(20),
@@ -236,20 +256,21 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                     ),
                   ],
                 )
-              else
-                GestureDetector(
+                    : GestureDetector(
                   onTap: state.isGenerating ? null : () => _pickImage(c),
                   child: DottedBorder(
                     borderType: BorderType.RRect,
                     radius: const Radius.circular(20),
                     dashPattern: const [8, 6],
-                    color: c.line,
-                    strokeWidth: 2,
+                    color: _isDragging ? c.accentText : c.line,
+                    strokeWidth: _isDragging ? 2.5 : 2,
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF7C3AED).withValues(alpha: 0.035),
+                        color: _isDragging
+                            ? c.accentText.withValues(alpha: 0.08)
+                            : const Color(0xFF7C3AED).withValues(alpha: 0.035),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
@@ -261,11 +282,15 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                               shape: BoxShape.circle,
                               color: c.iconBox,
                             ),
-                            child: Icon(Icons.image_outlined, color: c.accentText, size: 34),
+                            child: Icon(
+                              _isDragging ? Icons.file_download_outlined : Icons.image_outlined,
+                              color: c.accentText,
+                              size: 34,
+                            ),
                           ),
                           const SizedBox(height: 18),
                           Text(
-                            'UPLOAD IMAGE',
+                            _isDragging ? 'DROP TO UPLOAD' : 'UPLOAD IMAGE',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -273,11 +298,21 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                               color: c.muted,
                             ),
                           ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Tap to browse or drag & drop',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: c.muted.withValues(alpha: 0.7),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
+              ),
               const SizedBox(height: 22),
 
               // OR divider

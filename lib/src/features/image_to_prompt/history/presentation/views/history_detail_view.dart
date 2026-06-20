@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
@@ -45,7 +43,6 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
   late final AnimationController _bookmarkPop;
   late final Animation<double> _bookmarkScale;
 
-  double _headerOpacity = 0;
   bool _copied = false;
 
   @override
@@ -72,11 +69,6 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35).chain(CurveTween(curve: Curves.easeOut)), weight: 40),
       TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 60),
     ]).animate(_bookmarkPop);
-
-    _scrollController.addListener(() {
-      final next = (_scrollController.offset / 160).clamp(0, 1).toDouble();
-      if (next != _headerOpacity) setState(() => _headerOpacity = next);
-    });
   }
 
   @override
@@ -129,11 +121,19 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
 
         return Scaffold(
           backgroundColor: c.page,
-          body: Stack(
+          body: Column(
             children: [
-              CustomScrollView(
-                controller: _scrollController,
-                slivers: [
+              _DetailHeader(
+                c: c,
+                isSaved: entry.isSaved,
+                bookmarkScale: _bookmarkScale,
+                onBack: () => context.pop(),
+                onToggleSaved: () => _toggleSaved(entry),
+              ),
+              Expanded(
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
                   SliverToBoxAdapter(
                     child: ClipRect(
                       child: Stack(
@@ -301,58 +301,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                       ),
                     ),
                   ),
-                ],
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-                    child: SizedBox(
-                      height: 48,
-                      child: Stack(
-                        children: [
-                          if (_headerOpacity > 0)
-                            Positioned.fill(
-                              child: Opacity(
-                                opacity: _headerOpacity,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: BackdropFilter(
-                                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                                    child: Container(color: c.card.withValues(alpha: 0.85)),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _RoundIconButton(icon: Icons.arrow_back, onTap: () => context.pop()),
-                              Opacity(
-                                opacity: _headerOpacity,
-                                child: _PromptGenWordmark(c: c),
-                              ),
-                              AnimatedBuilder(
-                                animation: _bookmarkScale,
-                                builder: (context, _) => Transform.scale(
-                                  scale: _bookmarkScale.value,
-                                  child: _RoundIconButton(
-                                    icon: entry.isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                                    filled: entry.isSaved,
-                                    onTap: () => _toggleSaved(entry),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ],
@@ -406,18 +355,82 @@ class _PromptGenWordmark extends StatelessWidget {
   }
 }
 
-class _RoundIconButton extends StatefulWidget {
-  final IconData icon;
-  final bool filled;
-  final VoidCallback onTap;
+class _DetailHeader extends StatelessWidget {
+  final PromptColors c;
+  final bool isSaved;
+  final Animation<double> bookmarkScale;
+  final VoidCallback onBack;
+  final VoidCallback onToggleSaved;
 
-  const _RoundIconButton({required this.icon, required this.onTap, this.filled = false});
+  const _DetailHeader({
+    required this.c,
+    required this.isSaved,
+    required this.bookmarkScale,
+    required this.onBack,
+    required this.onToggleSaved,
+  });
 
   @override
-  State<_RoundIconButton> createState() => _RoundIconButtonState();
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: c.dark
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [const Color(0xFF7C3AED).withValues(alpha: 0.18), Colors.transparent],
+              )
+            : const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF0EBFB), Color(0xFFF8F7F3)],
+              ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
+          child: SizedBox(
+            height: 40,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _HeaderIconButton(icon: Icons.arrow_back, c: c, onTap: onBack),
+                _PromptGenWordmark(c: c),
+                AnimatedBuilder(
+                  animation: bookmarkScale,
+                  builder: (context, _) => Transform.scale(
+                    scale: bookmarkScale.value,
+                    child: _HeaderIconButton(
+                      icon: isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                      filled: isSaved,
+                      c: c,
+                      onTap: onToggleSaved,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _RoundIconButtonState extends State<_RoundIconButton> {
+class _HeaderIconButton extends StatefulWidget {
+  final IconData icon;
+  final bool filled;
+  final PromptColors c;
+  final VoidCallback onTap;
+
+  const _HeaderIconButton({required this.icon, required this.c, required this.onTap, this.filled = false});
+
+  @override
+  State<_HeaderIconButton> createState() => _HeaderIconButtonState();
+}
+
+class _HeaderIconButtonState extends State<_HeaderIconButton> {
   bool _pressed = false;
 
   @override
@@ -433,10 +446,10 @@ class _RoundIconButtonState extends State<_RoundIconButton> {
         curve: Curves.easeOut,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
-          width: 40,
-          height: 40,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
-            color: widget.filled ? const Color(0xFF8B3DFF) : Colors.black.withValues(alpha: 0.4),
+            color: widget.filled ? const Color(0xFF8B3DFF) : widget.c.iconBox,
             shape: BoxShape.circle,
           ),
           child: AnimatedSwitcher(
@@ -448,7 +461,12 @@ class _RoundIconButtonState extends State<_RoundIconButton> {
                 child: child,
               ),
             ),
-            child: Icon(widget.icon, key: ValueKey(widget.icon), color: Colors.white, size: 19),
+            child: Icon(
+              widget.icon,
+              key: ValueKey(widget.icon),
+              color: widget.filled ? Colors.white : widget.c.accentText,
+              size: 18,
+            ),
           ),
         ),
       ),

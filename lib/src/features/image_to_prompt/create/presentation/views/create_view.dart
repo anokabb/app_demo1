@@ -39,19 +39,38 @@ class CreateView extends StatefulWidget {
   State<CreateView> createState() => _CreateViewState();
 }
 
-class _CreateViewState extends State<CreateView> {
+class _CreateViewState extends State<CreateView> with SingleTickerProviderStateMixin {
   final cubit = locator<ImageToPromptCubit>();
   final _urlController = TextEditingController();
+
+  late final AnimationController _resultController;
+  late final Animation<Offset> _resultSlideAnimation;
+  late final Animation<double> _resultFadeAnimation;
+  bool _wasShowingResult = false;
 
   @override
   void initState() {
     super.initState();
     _urlController.text = cubit.state.imageUrl;
+    _wasShowingResult = cubit.state.showResult;
+
+    _resultController = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this);
+    _resultSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _resultController, curve: Curves.easeOutCubic));
+    _resultFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _resultController, curve: Curves.easeOutCubic));
+
+    if (_wasShowingResult) _resultController.value = 1;
   }
 
   @override
   void dispose() {
     _urlController.dispose();
+    _resultController.dispose();
     super.dispose();
   }
 
@@ -82,8 +101,14 @@ class _CreateViewState extends State<CreateView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ImageToPromptCubit, ImageToPromptState>(
+    return BlocConsumer<ImageToPromptCubit, ImageToPromptState>(
       bloc: cubit,
+      listener: (context, state) {
+        if (state.showResult && !_wasShowingResult) {
+          _resultController.forward(from: 0);
+        }
+        _wasShowingResult = state.showResult;
+      },
       builder: (context, state) {
         if (_urlController.text != state.imageUrl) {
           _urlController.text = state.imageUrl;
@@ -426,97 +451,103 @@ class _CreateViewState extends State<CreateView> {
               // Result card
               if (state.showResult) ...[
                 const SizedBox(height: 18),
-                Container(
-                  decoration: BoxDecoration(
-                    color: c.card,
-                    border: Border.all(color: c.line, width: 1.5),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                SlideTransition(
+                  position: _resultSlideAnimation,
+                  child: FadeTransition(
+                    opacity: _resultFadeAnimation,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: c.card,
+                        border: Border.all(color: c.line, width: 1.5),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'GENERATED PROMPT',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.92,
-                              color: c.muted,
-                            ),
-                          ),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              if (!state.autoSave)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: GestureDetector(
-                                    onTap: cubit.saveCurrentToHistory,
+                              Text(
+                                'GENERATED PROMPT',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.92,
+                                  color: c.muted,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  if (!state.autoSave)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: GestureDetector(
+                                        onTap: cubit.saveCurrentToHistory,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: c.field,
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.bookmark_add_outlined, color: c.muted, size: 14),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                'SAVE',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: 0.72,
+                                                  color: c.muted,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Clipboard.setData(ClipboardData(text: state.generatedPrompt));
+                                      cubit.copyResult();
+                                    },
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: c.field,
+                                        color: c.accentSoft,
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.bookmark_add_outlined, color: c.muted, size: 14),
+                                          Icon(Icons.content_copy, color: c.accentText, size: 14),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'SAVE',
+                                            state.resultCopied ? 'COPIED' : 'COPY',
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w700,
                                               letterSpacing: 0.72,
-                                              color: c.muted,
+                                              color: c.accentText,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                ),
-                              GestureDetector(
-                                onTap: () {
-                                  Clipboard.setData(ClipboardData(text: state.generatedPrompt));
-                                  cubit.copyResult();
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: c.accentSoft,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.content_copy, color: c.accentText, size: 14),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        state.resultCopied ? 'COPIED' : 'COPY',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.72,
-                                          color: c.accentText,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                ],
                               ),
                             ],
                           ),
+                          const SizedBox(height: 10),
+                          Text(
+                            state.generatedPrompt,
+                            style: TextStyle(fontSize: 15, height: 1.5, color: c.ink),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        state.generatedPrompt,
-                        style: TextStyle(fontSize: 15, height: 1.5, color: c.ink),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],

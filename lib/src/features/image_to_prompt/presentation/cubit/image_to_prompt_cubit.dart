@@ -124,31 +124,42 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
     _log.i('Generating prompt — tier: ${state.selectedModel.name}, smartEnhance: ${state.smartEnhance}');
 
-    final result = await _repo.generatePrompt(
+    final capturedBytes = bytes;
+    final capturedMime = mimeType;
+
+    String latestText = '';
+    String? errorMessage;
+
+    await _repo
+        .generatePromptStream(
       imageBytes: bytes,
       mimeType: mimeType,
       tier: state.selectedModel,
       smartEnhance: state.smartEnhance,
       outputLanguage: state.outputLanguage,
-    );
+    )
+        .forEach((event) {
+      event.fold(
+        (error) => errorMessage = error.message,
+        (text) {
+          latestText = text;
+          emit(state.copyWith(showResult: true, generatedPrompt: text));
+        },
+      );
+    });
 
-    final capturedBytes = bytes;
-    final capturedMime = mimeType;
+    if (errorMessage != null) {
+      _log.e('[ERROR generate] $errorMessage');
+      emit(state.copyWith(isGenerating: false, genError: errorMessage, showResult: false, generatedPrompt: ''));
+      showTopAlert(errorMessage!, isError: true);
+      return;
+    }
 
-    await result.fold(
-      (error) async {
-        _log.e('[ERROR generate] ${error.message}');
-        emit(state.copyWith(isGenerating: false, genError: error.message));
-        showTopAlert(error.message, isError: true);
-      },
-      (prompt) async {
-        emit(state.copyWith(isGenerating: false, showResult: true, generatedPrompt: prompt));
-        showTopAlert('Your prompt is ready!');
-        if (state.autoSave) {
-          await _addToHistory(prompt, capturedBytes, capturedMime);
-        }
-      },
-    );
+    emit(state.copyWith(isGenerating: false));
+    showTopAlert('Your prompt is ready!');
+    if (state.autoSave) {
+      await _addToHistory(latestText, capturedBytes, capturedMime);
+    }
   }
 
   Future<void> saveCurrentToHistory() async {

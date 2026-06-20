@@ -152,23 +152,24 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                   controller: _scrollController,
                   slivers: [
                   SliverToBoxAdapter(
-                    child: ClipRect(
-                      child: Stack(
-                        children: [
-                          AnimatedBuilder(
-                            animation: Listenable.merge([_entrance, _scrollController]),
-                            builder: (context, _) {
-                              final parallax = _scrollController.hasClients ? _scrollController.offset * 0.3 : 0.0;
-                              return Opacity(
-                                opacity: _heroFade.value,
-                                child: Transform.translate(
-                                  offset: Offset(0, parallax),
-                                  child: Transform.scale(
-                                    scale: _heroScale.value,
-                                    child: GestureDetector(
-                                      onTap: imageBytes != null && imageBytes.isNotEmpty
-                                          ? () => _openImagePreview(imageBytes)
-                                          : null,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: imageBytes != null && imageBytes.isNotEmpty
+                          ? () => _openImagePreview(imageBytes)
+                          : null,
+                      child: ClipRect(
+                        child: Stack(
+                          children: [
+                            AnimatedBuilder(
+                              animation: Listenable.merge([_entrance, _scrollController]),
+                              builder: (context, _) {
+                                final parallax = _scrollController.hasClients ? _scrollController.offset * 0.3 : 0.0;
+                                return Opacity(
+                                  opacity: _heroFade.value,
+                                  child: Transform.translate(
+                                    offset: Offset(0, parallax),
+                                    child: Transform.scale(
+                                      scale: _heroScale.value,
                                       child: SizedBox(
                                         height: imageHeight,
                                         width: double.infinity,
@@ -181,49 +182,49 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                       ),
                                     ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              height: 200,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [Colors.black.withValues(alpha: 0), Colors.black.withValues(alpha: 0.75)],
+                                );
+                              },
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Colors.black.withValues(alpha: 0), Colors.black.withValues(alpha: 0.75)],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            left: 18,
-                            right: 18,
-                            bottom: 16,
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _StaggerPop(
-                                  animation: _pill1,
-                                  child: _Pill(icon: Icons.auto_awesome, label: entry.tier.label, accent: true),
-                                ),
-                                _StaggerPop(
-                                  animation: _pill2,
-                                  child: _Pill(icon: Icons.language, label: entry.outputLanguage),
-                                ),
-                                _StaggerPop(
-                                  animation: _pill3,
-                                  child: _Pill(icon: Icons.schedule, label: _fullDate(entry.createdAt)),
-                                ),
-                              ],
+                            Positioned(
+                              left: 18,
+                              right: 18,
+                              bottom: 16,
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _StaggerPop(
+                                    animation: _pill1,
+                                    child: _Pill(icon: Icons.auto_awesome, label: entry.tier.label, accent: true),
+                                  ),
+                                  _StaggerPop(
+                                    animation: _pill2,
+                                    child: _Pill(icon: Icons.language, label: entry.outputLanguage),
+                                  ),
+                                  _StaggerPop(
+                                    animation: _pill3,
+                                    child: _Pill(icon: Icons.schedule, label: _fullDate(entry.createdAt)),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

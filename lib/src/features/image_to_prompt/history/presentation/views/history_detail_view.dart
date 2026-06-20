@@ -262,6 +262,14 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                 opacity: _actionsFade,
                                 child: Column(
                                   children: [
+                                    _ActionButton(
+                                      icon: Icons.auto_awesome_mosaic_outlined,
+                                      label: 'Use Prompt',
+                                      filled: true,
+                                      c: c,
+                                      onTap: () => _useEntry(entry),
+                                    ),
+                                    const SizedBox(height: 12),
                                     Row(
                                       children: [
                                         Expanded(
@@ -275,22 +283,14 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: _ActionButton(
-                                            icon: Icons.auto_awesome_mosaic_outlined,
-                                            label: 'Use Prompt',
-                                            filled: true,
+                                            icon: Icons.delete_outline,
+                                            label: 'Delete',
+                                            danger: true,
                                             c: c,
-                                            onTap: () => _useEntry(entry),
+                                            onTap: () => _deleteEntry(entry),
                                           ),
                                         ),
                                       ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _ActionButton(
-                                      icon: Icons.delete_outline,
-                                      label: 'Delete from History',
-                                      danger: true,
-                                      c: c,
-                                      onTap: () => _deleteEntry(entry),
                                     ),
                                   ],
                                 ),
@@ -332,13 +332,6 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _RoundIconButton(icon: Icons.arrow_back, onTap: () => context.pop()),
-                              Opacity(
-                                opacity: _headerOpacity,
-                                child: Text(
-                                  'Prompt Details',
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.ink),
-                                ),
-                              ),
                               AnimatedBuilder(
                                 animation: _bookmarkScale,
                                 builder: (context, _) => Transform.scale(
@@ -525,19 +518,23 @@ class _ActionButtonState extends State<_ActionButton> with SingleTickerProviderS
         child: AnimatedBuilder(
           animation: glow,
           builder: (context, _) {
+            final borderColor = widget.danger
+                ? const Color(0xFFD14343).withValues(alpha: 0.22)
+                : widget.c.accentText.withValues(alpha: 0.16);
             return Container(
-              height: 52,
+              height: widget.filled ? 58 : 52,
               decoration: BoxDecoration(
                 gradient: widget.filled ? PromptColors.accentGradient : null,
-                color: widget.filled ? null : (widget.danger ? const Color(0xFFD14343).withValues(alpha: 0.08) : widget.c.accentSoft),
-                borderRadius: BorderRadius.circular(16),
+                color: widget.filled ? null : (widget.danger ? const Color(0xFFD14343).withValues(alpha: 0.07) : widget.c.accentSoft),
+                border: widget.filled ? null : Border.all(color: borderColor, width: 1.3),
+                borderRadius: BorderRadius.circular(widget.filled ? 18 : 15),
                 boxShadow: widget.filled
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF8B3DFF).withValues(alpha: 0.22 + 0.18 * glow.value),
-                          blurRadius: 14 + 10 * glow.value,
+                          color: const Color(0xFF8B3DFF).withValues(alpha: 0.24 + 0.18 * glow.value),
+                          blurRadius: 16 + 10 * glow.value,
                           spreadRadius: 1,
-                          offset: const Offset(0, 5),
+                          offset: const Offset(0, 6),
                         ),
                       ]
                     : null,
@@ -548,7 +545,7 @@ class _ActionButtonState extends State<_ActionButton> with SingleTickerProviderS
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 250),
                     transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                    child: Icon(widget.icon, key: ValueKey(widget.icon), color: fg, size: 18),
+                    child: Icon(widget.icon, key: ValueKey(widget.icon), color: fg, size: widget.filled ? 19 : 17),
                   ),
                   const SizedBox(width: 8),
                   AnimatedSwitcher(
@@ -556,7 +553,11 @@ class _ActionButtonState extends State<_ActionButton> with SingleTickerProviderS
                     child: Text(
                       widget.label,
                       key: ValueKey(widget.label),
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: fg),
+                      style: TextStyle(
+                        fontSize: widget.filled ? 15 : 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: fg,
+                      ),
                     ),
                   ),
                 ],

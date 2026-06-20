@@ -20,6 +20,7 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
   final cubit = locator<ImageToPromptCubit>();
 
   void _onTabTap(int index) {
+    cubit.requestScrollToTop(index);
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,

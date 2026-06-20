@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';

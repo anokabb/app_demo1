@@ -18,7 +18,9 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     interceptors: [LoggerInterceptor()],
   )..options.connectTimeout = const Duration(seconds: 30)
-    ..options.receiveTimeout = const Duration(seconds: 45);
+    // gemini-2.5-pro (the "detailed" tier) reasons before answering, so it can
+    // take noticeably longer to start streaming than flash/flash-lite.
+    ..options.receiveTimeout = const Duration(seconds: 90);
 
   static const _modelIds = {
     ImagePromptModelTier.fast: 'gemini-2.5-flash-lite',
@@ -43,6 +45,7 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
     }
 
     final modelId = _modelIds[tier]!;
+    final isDetailed = tier == ImagePromptModelTier.detailed;
     final instruction = _buildInstruction(
       smartEnhance: smartEnhance,
       outputLanguage: outputLanguage,
@@ -69,13 +72,32 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
           ],
           'generationConfig': {
             'temperature': 0.55,
-            'maxOutputTokens': smartEnhance ? 400 : 180,
+            // Gemini 2.5 models spend output tokens on internal "thinking", so
+            // the budget has to cover both the reasoning and the visible prompt.
+            // gemini-2.5-pro thinks the most and cannot disable it, hence the
+            // larger ceiling for the detailed tier.
+            'maxOutputTokens': isDetailed ? 2048 : (smartEnhance ? 1024 : 512),
+            // Turn thinking off for the fast/balanced tiers (they don't need it
+            // for a short caption); pro requires a non-zero budget so give it a
+            // bounded one that still leaves room for the actual answer.
+            'thinkingConfig': {'thinkingBudget': isDetailed ? 1024 : 0},
           },
         },
-        options: Options(responseType: ResponseType.stream),
+        // Let non-2xx responses through instead of throwing — when the body is
+        // a stream Dio can't parse the error JSON, so we drain and decode it
+        // ourselves to surface Gemini's real message (quota, model access, …).
+        options: Options(responseType: ResponseType.stream, validateStatus: (_) => true),
       );
 
+      final status = response.statusCode ?? 0;
+      if (status < 200 || status >= 300) {
+        final body = await response.data!.stream.cast<List<int>>().transform(utf8.decoder).join();
+        yield left(AppError.server(message: _extractApiError(body, status), statusCode: status));
+        return;
+      }
+
       final buffer = StringBuffer();
+      String? blockReason;
       final lines = response.data!.stream
           .cast<List<int>>()
           .transform(utf8.decoder)
@@ -93,9 +115,18 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
           continue; // partial/malformed SSE chunk — wait for the rest
         }
 
+        // Capture why a response came back empty (safety filter, token cap…)
+        // so we can report something more useful than a blank prompt.
+        blockReason ??= (json?['promptFeedback'] as Map?)?['blockReason']?.toString();
+
         final candidates = json?['candidates'] as List?;
         if (candidates == null || candidates.isEmpty) continue;
-        final parts = (candidates.first as Map)['content']?['parts'] as List?;
+        final first = candidates.first as Map;
+        final finish = first['finishReason']?.toString();
+        if (finish != null && finish != 'STOP' && finish != 'MAX_TOKENS') {
+          blockReason ??= finish;
+        }
+        final parts = first['content']?['parts'] as List?;
         final delta = parts?.map((p) => (p as Map)['text']?.toString() ?? '').join() ?? '';
         if (delta.isEmpty) continue;
 
@@ -104,12 +135,30 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
       }
 
       if (buffer.isEmpty) {
-        yield left(const AppError.unknown());
+        yield left(AppError.server(
+          message: blockReason != null
+              ? 'The model returned no prompt (reason: $blockReason). Try another image or model.'
+              : 'The model returned an empty prompt. Please try again.',
+        ));
       }
     } catch (e) {
       _log.e('[ERROR generatePromptStream] ${e.toString()}');
       yield left(AppError.fromException(e));
     }
+  }
+
+  /// Pulls the human-readable message out of a Gemini error body, e.g.
+  /// `{"error": {"code": 429, "message": "Quota exceeded…", "status": …}}`.
+  String _extractApiError(String body, int status) {
+    try {
+      final decoded = jsonDecode(body);
+      final error = decoded is Map ? decoded['error'] : (decoded is List && decoded.isNotEmpty ? decoded.first['error'] : null);
+      final message = (error as Map?)?['message']?.toString();
+      if (message != null && message.isNotEmpty) return message;
+    } catch (_) {
+      // fall through to the generic message
+    }
+    return 'Gemini request failed (HTTP $status).';
   }
 
   String _buildInstruction({

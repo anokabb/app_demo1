@@ -24,6 +24,8 @@ class ImageToPromptState {
   final bool resultCopied;
   final int recentCopied;
   final int histFilter;
+  final ImagePromptModelTier? histTier;
+  final String? histLanguage;
   final String historySearch;
   final int histCopied;
   final List<HistoryEntryModel> history;
@@ -44,6 +46,8 @@ class ImageToPromptState {
     this.resultCopied = false,
     this.recentCopied = -1,
     this.histFilter = 0,
+    this.histTier,
+    this.histLanguage,
     this.historySearch = '',
     this.histCopied = -1,
     this.history = const [],
@@ -65,6 +69,8 @@ class ImageToPromptState {
     bool? resultCopied,
     int? recentCopied,
     int? histFilter,
+    Object? histTier = _unspecified,
+    Object? histLanguage = _unspecified,
     String? historySearch,
     int? histCopied,
     List<HistoryEntryModel>? history,
@@ -89,6 +95,9 @@ class ImageToPromptState {
       resultCopied: resultCopied ?? this.resultCopied,
       recentCopied: recentCopied ?? this.recentCopied,
       histFilter: histFilter ?? this.histFilter,
+      histTier: histTier == _unspecified ? this.histTier : (histTier is Unset ? null : histTier as ImagePromptModelTier?),
+      histLanguage:
+          histLanguage == _unspecified ? this.histLanguage : (histLanguage is Unset ? null : histLanguage as String?),
       historySearch: historySearch ?? this.historySearch,
       histCopied: histCopied ?? this.histCopied,
       history: history ?? this.history,
@@ -107,10 +116,26 @@ class ImageToPromptState {
 
     return history.where((entry) {
       if (query.isNotEmpty && !entry.prompt.toLowerCase().contains(query)) return false;
+      if (histTier != null && entry.tier != histTier) return false;
+      if (histLanguage != null && entry.outputLanguage != histLanguage) return false;
       if (histFilter == 1) return !entry.createdAt.isBefore(startOfToday);
       if (histFilter == 2) return !entry.createdAt.isBefore(startOfWeek);
       return true;
     }).toList();
+  }
+
+  /// Models actually present in history, in their canonical order — used to
+  /// build the model filter chips so we never show a filter that matches nothing.
+  List<ImagePromptModelTier> get historyTiers {
+    final seen = history.map((e) => e.tier).toSet();
+    return ImagePromptModelTier.values.where(seen.contains).toList();
+  }
+
+  /// Distinct output languages present in history, alphabetically sorted.
+  List<String> get historyLanguages {
+    final seen = history.map((e) => e.outputLanguage).toSet().toList();
+    seen.sort();
+    return seen;
   }
 
   List<({String label, List<HistoryEntryModel> items})> get groupedHistory {

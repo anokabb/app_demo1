@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pickers/app_image_picker.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_url_fetcher.dart';
@@ -617,7 +618,9 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                   final item = recentItems[i];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Container(
+                    child: GestureDetector(
+                      onTap: () => context.push(HistoryDetailView.routeName, extra: item),
+                      child: Container(
                       decoration: BoxDecoration(
                         color: c.card,
                         borderRadius: BorderRadius.circular(18),
@@ -646,6 +649,52 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                                   style: TextStyle(fontSize: 14, height: 1.4, color: c.ink),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: c.accentSoft,
+                                        borderRadius: BorderRadius.circular(9),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      child: Text(
+                                        item.tier.label,
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.5,
+                                          color: c.accentText,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: c.field,
+                                        borderRadius: BorderRadius.circular(9),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.language, size: 10, color: c.muted),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            item.outputLanguage,
+                                            style: TextStyle(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.3,
+                                              color: c.muted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 10),
                                 Row(
@@ -710,6 +759,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                             ),
                           ),
                         ],
+                      ),
                       ),
                     ),
                   );

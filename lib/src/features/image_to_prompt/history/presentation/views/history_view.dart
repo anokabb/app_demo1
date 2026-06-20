@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
-import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -238,10 +238,7 @@ class _HistoryViewState extends State<HistoryView> {
                             child: const Icon(Icons.delete_outline, color: Colors.white),
                           ),
                           child: GestureDetector(
-                            onTap: () {
-                              cubit.useHistoryEntry(entry.id);
-                              context.go(CreateView.routeName);
-                            },
+                            onTap: () => context.push(HistoryDetailView.routeName, extra: entry),
                             child: _HistoryCard(
                               entry: entry,
                               c: c,

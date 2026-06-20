@@ -13,6 +13,8 @@ import 'package:flutter_app_template/src/features/auth/presentation/pages/regist
 import 'package:flutter_app_template/src/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flutter_app_template/src/features/dev/presentation/views/dev_mode_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/settings/presentation/views/settings_view.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/pages/language_page.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/pages/theme_page.dart';
@@ -108,6 +110,11 @@ class AppRouter {
         path: SettingsView.routeName,
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => const CupertinoPage(child: SettingsView()),
+      ),
+      GoRoute(
+        path: HistoryDetailView.routeName,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => CupertinoPage(child: HistoryDetailView(entry: state.extra as HistoryEntryModel)),
       ),
     ];
   }

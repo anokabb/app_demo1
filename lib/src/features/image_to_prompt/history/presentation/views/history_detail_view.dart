@@ -335,23 +335,124 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
   }
 }
 
-class _ImagePreviewView extends StatelessWidget {
+class _ImagePreviewView extends StatefulWidget {
   final Uint8List imageBytes;
 
   const _ImagePreviewView({required this.imageBytes});
 
   @override
+  State<_ImagePreviewView> createState() => _ImagePreviewViewState();
+}
+
+class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerProviderStateMixin {
+  static const _dismissThreshold = 120.0;
+  static const _dismissVelocity = 800.0;
+  static const _maxDragForFade = 280.0;
+
+  final _transformController = TransformationController();
+  late final AnimationController _dragAnim;
+  Animation<Offset>? _dragOffsetAnim;
+
+  Offset _dragOffset = Offset.zero;
+  double _zoomScale = 1;
+  bool _dragging = false;
+
+  bool get _canDismissDrag => _zoomScale <= 1.02;
+
+  @override
+  void initState() {
+    super.initState();
+    _dragAnim = AnimationController(vsync: this)
+      ..addListener(() {
+        final anim = _dragOffsetAnim;
+        if (anim != null) setState(() => _dragOffset = anim.value);
+      });
+    _transformController.addListener(() {
+      final scale = _transformController.value.getMaxScaleOnAxis();
+      if ((scale - _zoomScale).abs() > 0.01) setState(() => _zoomScale = scale);
+    });
+  }
+
+  @override
+  void dispose() {
+    _dragAnim.dispose();
+    _transformController.dispose();
+    super.dispose();
+  }
+
+  void _onVerticalDragStart(DragStartDetails details) {
+    _dragAnim.stop();
+    _dragging = true;
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (!_dragging) return;
+    setState(() => _dragOffset += details.delta);
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    if (!_dragging) return;
+    _dragging = false;
+    final velocity = details.primaryVelocity ?? 0;
+    final shouldDismiss = _dragOffset.dy.abs() > _dismissThreshold || velocity.abs() > _dismissVelocity;
+    if (shouldDismiss) {
+      _flingAway();
+    } else {
+      _springBack();
+    }
+  }
+
+  void _flingAway() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final direction = _dragOffset.dy >= 0 ? 1.0 : -1.0;
+    _dragOffsetAnim = Tween<Offset>(begin: _dragOffset, end: Offset(_dragOffset.dx, direction * screenHeight))
+        .animate(CurvedAnimation(parent: _dragAnim, curve: Curves.easeOut));
+    _dragAnim.duration = const Duration(milliseconds: 200);
+    _dragAnim.forward(from: 0).whenComplete(() {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  void _springBack() {
+    _dragOffsetAnim = Tween<Offset>(begin: _dragOffset, end: Offset.zero)
+        .animate(CurvedAnimation(parent: _dragAnim, curve: Curves.easeOutCubic));
+    _dragAnim.duration = const Duration(milliseconds: 260);
+    _dragAnim.forward(from: 0);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final dragDistance = _dragOffset.dy.abs();
+    final progress = (dragDistance / _maxDragForFade).clamp(0.0, 1.0);
+    final imageScale = 1 - progress * 0.35;
+    final backgroundOpacity = 1 - progress;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Positioned.fill(
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 5,
-              child: Center(
-                child: Image.memory(imageBytes, fit: BoxFit.contain),
+            child: Container(color: Colors.black.withValues(alpha: backgroundOpacity)),
+          ),
+          Positioned.fill(
+            child: GestureDetector(
+              onVerticalDragStart: _canDismissDrag ? _onVerticalDragStart : null,
+              onVerticalDragUpdate: _canDismissDrag ? _onVerticalDragUpdate : null,
+              onVerticalDragEnd: _canDismissDrag ? _onVerticalDragEnd : null,
+              child: Transform.translate(
+                offset: _dragOffset,
+                child: Transform.scale(
+                  scale: imageScale,
+                  child: InteractiveViewer(
+                    transformationController: _transformController,
+                    panEnabled: !_canDismissDrag,
+                    minScale: 1,
+                    maxScale: 5,
+                    child: Center(
+                      child: Image.memory(widget.imageBytes, fit: BoxFit.contain),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -365,8 +466,8 @@ class _ImagePreviewView extends StatelessWidget {
                   child: Container(
                     width: 38,
                     height: 38,
-                    decoration: const BoxDecoration(
-                      color: Colors.black54,
+                    decoration: BoxDecoration(
+                      color: Colors.black54.withValues(alpha: backgroundOpacity),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close, color: Colors.white, size: 20),

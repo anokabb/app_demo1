@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/history_filters_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -80,36 +81,108 @@ class _HistoryViewState extends State<HistoryView> {
               const SizedBox(height: 22),
 
               // Search
-              Container(
-                height: 54,
-                decoration: BoxDecoration(
-                  color: c.field,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Icon(Icons.search, color: c.muted, size: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: c.field,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: c.muted, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: cubit.setHistorySearch,
+                              style: TextStyle(fontSize: 15, color: c.ink),
+                              decoration: InputDecoration(
+                                hintText: 'Search prompts...',
+                                hintStyle: TextStyle(color: c.muted, fontSize: 15),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: false,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _searchController,
+                            builder: (context, value, _) {
+                              final hasText = value.text.isNotEmpty;
+                              return IgnorePointer(
+                                ignoring: !hasText,
+                                child: AnimatedOpacity(
+                                  opacity: hasText ? 1 : 0,
+                                  duration: const Duration(milliseconds: 160),
+                                  child: AnimatedScale(
+                                    scale: hasText ? 1 : 0.6,
+                                    duration: const Duration(milliseconds: 160),
+                                    curve: Curves.easeOutBack,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        _searchController.clear();
+                                        cubit.setHistorySearch('');
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(left: 6),
+                                        child: Icon(Icons.cancel, color: c.muted, size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (state.historyTiers.length > 1 || state.historyLanguages.length > 1) ...[
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: cubit.setHistorySearch,
-                        style: TextStyle(fontSize: 15, color: c.ink),
-                        decoration: InputDecoration(
-                          hintText: 'Search prompts...',
-                          hintStyle: TextStyle(color: c.muted, fontSize: 15),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          filled: false,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
+                    GestureDetector(
+                      onTap: () => showHistoryFiltersSheet(context: context, c: c, cubit: cubit),
+                      child: Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: c.field,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(
+                              Icons.tune,
+                              color: (state.histTier != null || state.histLanguage != null) ? c.accentText : c.muted,
+                              size: 22,
+                            ),
+                            if (state.histTier != null || state.histLanguage != null)
+                              Positioned(
+                                top: 9,
+                                right: 9,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: c.accentText,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: c.field, width: 2),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
               const SizedBox(height: 18),
 
@@ -144,59 +217,6 @@ class _HistoryViewState extends State<HistoryView> {
                 }),
               ),
 
-              // Model filter — only shown once history spans more than one model.
-              if (state.historyTiers.length > 1) ...[
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _FilterChip(
-                        label: 'All Models',
-                        selected: state.histTier == null,
-                        onTap: () => cubit.setHistTier(null),
-                        c: c,
-                      ),
-                      ...state.historyTiers.map((tier) => Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: _FilterChip(
-                              label: tier.label,
-                              selected: state.histTier == tier,
-                              onTap: () => cubit.setHistTier(tier),
-                              c: c,
-                            ),
-                          )),
-                    ],
-                  ),
-                ),
-              ],
-
-              // Language filter — only shown once history spans more than one language.
-              if (state.historyLanguages.length > 1) ...[
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _FilterChip(
-                        label: 'All Languages',
-                        selected: state.histLanguage == null,
-                        onTap: () => cubit.setHistLanguage(null),
-                        c: c,
-                      ),
-                      ...state.historyLanguages.map((lang) => Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: _FilterChip(
-                              label: lang,
-                              selected: state.histLanguage == lang,
-                              onTap: () => cubit.setHistLanguage(lang),
-                              c: c,
-                            ),
-                          )),
-                    ],
-                  ),
-                ),
-              ],
               const SizedBox(height: 24),
 
               if (groups.isEmpty)
@@ -402,45 +422,6 @@ class _HistoryCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final PromptColors c;
-
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.c,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: selected ? PromptColors.accentGradient : null,
-          color: selected ? null : c.field,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            height: 1,
-            color: selected ? Colors.white : c.muted,
-          ),
-        ),
       ),
     );
   }

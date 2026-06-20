@@ -134,6 +134,60 @@ class _HistoryViewState extends State<HistoryView> {
                   );
                 }),
               ),
+
+              // Model filter — only shown once history spans more than one model.
+              if (state.historyTiers.length > 1) ...[
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: 'All Models',
+                        selected: state.histTier == null,
+                        onTap: () => cubit.setHistTier(null),
+                        c: c,
+                      ),
+                      ...state.historyTiers.map((tier) => Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: _FilterChip(
+                              label: tier.label,
+                              selected: state.histTier == tier,
+                              onTap: () => cubit.setHistTier(tier),
+                              c: c,
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ],
+
+              // Language filter — only shown once history spans more than one language.
+              if (state.historyLanguages.length > 1) ...[
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: 'All Languages',
+                        selected: state.histLanguage == null,
+                        onTap: () => cubit.setHistLanguage(null),
+                        c: c,
+                      ),
+                      ...state.historyLanguages.map((lang) => Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: _FilterChip(
+                              label: lang,
+                              selected: state.histLanguage == lang,
+                              onTap: () => cubit.setHistLanguage(lang),
+                              c: c,
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
 
               if (groups.isEmpty)
@@ -259,7 +313,10 @@ class _HistoryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Container(
                       decoration: BoxDecoration(
@@ -277,7 +334,29 @@ class _HistoryCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: c.field,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.language, size: 11, color: c.muted),
+                          const SizedBox(width: 4),
+                          Text(
+                            entry.outputLanguage,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                              color: c.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Text(
                       _relativeTime(entry.createdAt),
                       style: TextStyle(fontSize: 12, color: c.muted, fontWeight: FontWeight.w500),
@@ -317,6 +396,45 @@ class _HistoryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final PromptColors c;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.c,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: selected ? PromptColors.accentGradient : null,
+          color: selected ? null : c.field,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+            height: 1,
+            color: selected ? Colors.white : c.muted,
+          ),
+        ),
       ),
     );
   }

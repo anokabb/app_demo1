@@ -332,6 +332,10 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _RoundIconButton(icon: Icons.arrow_back, onTap: () => context.pop()),
+                              Opacity(
+                                opacity: _headerOpacity,
+                                child: _PromptGenWordmark(c: c),
+                              ),
                               AnimatedBuilder(
                                 animation: _bookmarkScale,
                                 builder: (context, _) => Transform.scale(
@@ -373,6 +377,31 @@ class _StaggerPop extends StatelessWidget {
         position: Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(animation),
         child: child,
       ),
+    );
+  }
+}
+
+class _PromptGenWordmark extends StatelessWidget {
+  final PromptColors c;
+  const _PromptGenWordmark({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.auto_awesome, color: PromptColors.primary, size: 18),
+        const SizedBox(width: 6),
+        Text(
+          'PromptGen',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            color: c.accentText,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
-import 'package:flutter_app_template/src/features/image_to_prompt/settings/presentation/views/settings_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -42,10 +41,7 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
               children: [
                 Column(
                   children: [
-                    _PromptHeader(
-                      c: c,
-                      onSettings: () => context.push(SettingsView.routeName),
-                    ),
+                    _PromptHeader(c: c),
                     Expanded(
                       child: widget.navigationShell,
                     ),
@@ -73,8 +69,7 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
 
 class _PromptHeader extends StatelessWidget {
   final PromptColors c;
-  final VoidCallback onSettings;
-  const _PromptHeader({required this.c, required this.onSettings});
+  const _PromptHeader({required this.c});
 
   @override
   Widget build(BuildContext context) {
@@ -99,20 +94,7 @@ class _PromptHeader extends StatelessWidget {
                 ],
               ),
       ),
-      child: Row(
-        children: [
-          _PromptLogo(c: c),
-          const Spacer(),
-          GestureDetector(
-            onTap: onSettings,
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              color: Colors.transparent,
-              child: Icon(Icons.settings_outlined, color: c.accentText, size: 24),
-            ),
-          ),
-        ],
-      ),
+      child: _PromptLogo(c: c),
     );
   }
 }

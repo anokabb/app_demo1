@@ -47,7 +47,22 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
                       onSettings: () => context.push(SettingsView.routeName),
                     ),
                     Expanded(
-                      child: widget.navigationShell,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 280),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                        child: KeyedSubtree(
+                          key: ValueKey(widget.navigationShell.currentIndex),
+                          child: widget.navigationShell,
+                        ),
+                      ),
                     ),
                   ],
                 ),

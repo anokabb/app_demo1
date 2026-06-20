@@ -228,7 +228,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                   const SizedBox(width: 10),
                                   Text(
                                     'GENERATED PROMPT',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.9, color: c.muted),
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.92, color: c.muted),
                                   ),
                                 ],
                               ),

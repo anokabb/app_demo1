@@ -151,7 +151,7 @@ class _HistoryViewState extends State<HistoryView> {
                   ),
                   if (groups.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 6),
+                      padding: const EdgeInsets.only(top: 10),
                       child: GestureDetector(
                         onTap: () {
                           if (_selectionMode) {
@@ -160,16 +160,12 @@ class _HistoryViewState extends State<HistoryView> {
                             setState(() => _selectionMode = true);
                           }
                         },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                          decoration: BoxDecoration(color: c.field, borderRadius: BorderRadius.circular(14)),
-                          child: Text(
-                            _selectionMode ? 'Cancel' : 'Select',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: _selectionMode ? c.muted : c.accentText,
-                            ),
+                        child: Text(
+                          _selectionMode ? 'Cancel' : 'Select',
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w600,
+                            color: c.accentText,
                           ),
                         ),
                       ),
@@ -378,25 +374,31 @@ class _HistoryViewState extends State<HistoryView> {
                               }
                             },
                             onLongPress: _selectionMode ? null : () => _enterSelectionMode(entry.id),
-                            child: Stack(
+                            child: Row(
                               children: [
-                                _HistoryCard(
-                                  entry: entry,
-                                  c: c,
-                                  copied: state.histCopied == globalIndex,
-                                  onCopy: () {
-                                    Clipboard.setData(ClipboardData(text: entry.prompt));
-                                    cubit.copyHistory(globalIndex);
-                                    showTopAlert('Copied to clipboard');
-                                  },
-                                  onToggleSaved: () => cubit.toggleHistorySaved(entry.id),
+                                AnimatedSize(
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeOutCubic,
+                                  child: _selectionMode
+                                      ? Padding(
+                                          padding: const EdgeInsets.only(right: 12),
+                                          child: _SelectionCheckbox(selected: selected, c: c),
+                                        )
+                                      : const SizedBox(width: 0),
                                 ),
-                                if (_selectionMode)
-                                  Positioned(
-                                    top: 10,
-                                    left: 10,
-                                    child: _SelectionCheckbox(selected: selected, c: c),
+                                Expanded(
+                                  child: _HistoryCard(
+                                    entry: entry,
+                                    c: c,
+                                    copied: state.histCopied == globalIndex,
+                                    onCopy: () {
+                                      Clipboard.setData(ClipboardData(text: entry.prompt));
+                                      cubit.copyHistory(globalIndex);
+                                      showTopAlert('Copied to clipboard');
+                                    },
+                                    onToggleSaved: () => cubit.toggleHistorySaved(entry.id),
                                   ),
+                                ),
                               ],
                             ),
                           ),
@@ -407,16 +409,17 @@ class _HistoryViewState extends State<HistoryView> {
                 }),
             ],
           ),
-              if (_selectionMode && _selectedIds.isNotEmpty)
+              if (_selectionMode)
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: 0,
-                  child: SafeArea(
-                    child: _BulkDeleteBar(
-                      count: _selectedIds.length,
-                      onDelete: () => _confirmBulkDelete(c),
-                    ),
+                  // Sits above the persistent bottom tab bar (a Positioned overlay in
+                  // ImageToPromptShell) so this toolbar isn't painted over by it.
+                  bottom: 110,
+                  child: _BulkDeleteBar(
+                    count: _selectedIds.length,
+                    c: c,
+                    onDelete: _selectedIds.isEmpty ? null : () => _confirmBulkDelete(c),
                   ),
                 ),
             ],
@@ -435,51 +438,66 @@ class _SelectionCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      width: 22,
+      height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: selected ? c.accentText : Colors.black.withValues(alpha: 0.35),
-        border: Border.all(color: Colors.white, width: 1.5),
+        color: selected ? c.accentText : Colors.transparent,
+        border: Border.all(color: selected ? c.accentText : c.muted.withValues(alpha: 0.5), width: 1.6),
       ),
-      child: selected ? const Icon(Icons.check, color: Colors.white, size: 15) : null,
+      child: selected ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
     );
   }
 }
 
 class _BulkDeleteBar extends StatelessWidget {
   final int count;
-  final VoidCallback onDelete;
+  final PromptColors c;
+  final VoidCallback? onDelete;
 
-  const _BulkDeleteBar({required this.count, required this.onDelete});
+  const _BulkDeleteBar({required this.count, required this.c, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onDelete != null;
+    const danger = Color(0xFFD14343);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 0, 22, 18),
-      child: GestureDetector(
-        onTap: onDelete,
-        child: Container(
-          height: 56,
-          decoration: BoxDecoration(
-            color: const Color(0xFFD14343),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, 10)),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.delete_outline, color: Colors.white, size: 19),
-              const SizedBox(width: 8),
-              Text(
-                'Delete $count item${count == 1 ? '' : 's'}',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          color: c.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.line, width: 1),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.16), blurRadius: 18, offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Text(
+              count == 0 ? 'Select items' : '$count selected',
+              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: c.muted),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: onDelete,
+              child: Opacity(
+                opacity: enabled ? 1 : 0.4,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.delete_outline, color: danger, size: 18),
+                    SizedBox(width: 6),
+                    Text('Delete', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: danger)),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -362,6 +362,9 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
   late final AnimationController _dragAnim;
   Animation<Offset>? _dragOffsetAnim;
 
+  late final AnimationController _zoomAnim;
+  Animation<Matrix4>? _zoomTween;
+
   Offset _dragOffset = Offset.zero;
   double _zoomScale = 1;
   bool _dragging = false;
@@ -376,6 +379,11 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
         final anim = _dragOffsetAnim;
         if (anim != null) setState(() => _dragOffset = anim.value);
       });
+    _zoomAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 260))
+      ..addListener(() {
+        final tween = _zoomTween;
+        if (tween != null) _transformController.value = tween.value;
+      });
     _transformController.addListener(() {
       final scale = _transformController.value.getMaxScaleOnAxis();
       if ((scale - _zoomScale).abs() > 0.01) setState(() => _zoomScale = scale);
@@ -385,8 +393,15 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
   @override
   void dispose() {
     _dragAnim.dispose();
+    _zoomAnim.dispose();
     _transformController.dispose();
     super.dispose();
+  }
+
+  void _animateZoomTo(Matrix4 target) {
+    _zoomTween = Matrix4Tween(begin: _transformController.value, end: target)
+        .animate(CurvedAnimation(parent: _zoomAnim, curve: Curves.easeOutCubic));
+    _zoomAnim.forward(from: 0);
   }
 
   void _onVerticalDragStart(DragStartDetails details) {
@@ -439,14 +454,16 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
     final details = _doubleTapDetails;
     if (details == null) return;
     if (_zoomScale > 1.01) {
-      _transformController.value = Matrix4.identity();
+      _animateZoomTo(Matrix4.identity());
       return;
     }
     final position = details.localPosition;
     const scale = _doubleTapZoomScale;
-    _transformController.value = Matrix4.identity()
-      ..translate(-position.dx * (scale - 1), -position.dy * (scale - 1))
-      ..scale(scale);
+    _animateZoomTo(
+      Matrix4.identity()
+        ..translate(-position.dx * (scale - 1), -position.dy * (scale - 1))
+        ..scale(scale),
+    );
   }
 
   @override

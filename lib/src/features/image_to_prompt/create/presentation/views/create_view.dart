@@ -155,7 +155,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
           _urlController.text = state.imageUrl;
         }
         final c = PromptColors(state.darkMode);
-        final recentItems = state.history.take(2).toList();
+        final recentItems = state.history.take(8).toList();
 
         return Scaffold(
           backgroundColor: c.page,

@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
-import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
+import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 
 /// Unified alert/error toast UI — used for both success and error messages.
 /// Adapts its colors to the app's current light/dark theme.
@@ -14,7 +15,10 @@ class AppAlertToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = ThemeCubit.isDarkMode;
+    // The image-to-prompt feature's own Settings dark-mode toggle is the only
+    // dark-mode switch this app's UI exposes — the app-wide ThemeCubit is
+    // never touched by it, so this toast must follow ImageToPromptCubit instead.
+    final isDark = locator<ImageToPromptCubit>().state.darkMode;
     final accent = isError ? const Color(0xFFE5484D) : const Color(0xFF30A46C);
     final background = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1C1C1E);

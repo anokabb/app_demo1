@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -166,6 +167,35 @@ class _SettingsBody extends StatelessWidget {
                   final lang = await showLanguagePickerSheet(context: context, c: c, current: state.outputLanguage);
                   if (lang != null) cubit.setOutputLanguage(lang);
                 },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 26),
+        _SectionLabel(label: 'ALERTS', c: c),
+        Container(
+          decoration: BoxDecoration(
+            color: c.card,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [PromptColors.cardShadow],
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Column(
+            children: [
+              _SettingsRow(
+                icon: Icons.check_circle_outline,
+                title: 'Show sample alert',
+                trailing: '',
+                c: c,
+                isFirst: true,
+                onTap: () => showTopAlert('This is a sample alert.'),
+              ),
+              _SettingsRow(
+                icon: Icons.error_outline,
+                title: 'Show sample error',
+                trailing: '',
+                c: c,
+                onTap: () => showTopError('This is a sample error.'),
               ),
             ],
           ),

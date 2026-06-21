@@ -124,7 +124,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
     final clip = await Clipboard.getData(Clipboard.kTextPlain);
     final text = clip?.text?.trim();
     if (text == null || text.isEmpty) return;
-    cubit.setImageUrl(text);
+    cubit.pasteImageUrl(text);
   }
 
   Future<void> _pickLanguage(PromptColors c) async {
@@ -185,37 +185,53 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                 onDragDone: (detail) => _handleDroppedFiles(detail.files),
                 onDragEntered: (_) => setState(() => _isDragging = true),
                 onDragExited: (_) => setState(() => _isDragging = false),
-                child: state.pickedImageBytes != null
+                child: state.isFetchingUrlPreview && state.pickedImageBytes == null
+                    ? Container(
+                        width: double.infinity,
+                        height: 220,
+                        decoration: BoxDecoration(color: c.field, borderRadius: BorderRadius.circular(20)),
+                        child: Center(child: CircularProgressIndicator(color: c.accentText)),
+                      )
+                    : state.pickedImageBytes != null
                     ? Stack(
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: Builder(
-                        builder: (_) {
-                          final preview = Image.memory(
-                            state.pickedImageBytes!,
-                            width: double.infinity,
-                            height: 220,
-                            fit: BoxFit.cover,
-                          );
-                          // A pasted URL takes priority over the picked image at generate
-                          // time, so grey out the preview instead of discarding it.
-                          if (state.imageUrl.isEmpty) return preview;
-                          return Opacity(
-                            opacity: 0.4,
-                            child: ColorFiltered(
-                              colorFilter: const ColorFilter.matrix(<double>[
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0, 0, 0, 1, 0,
-                              ]),
-                              child: preview,
-                            ),
-                          );
-                        },
+                      child: Image.memory(
+                        state.pickedImageBytes!,
+                        width: double.infinity,
+                        height: 220,
+                        fit: BoxFit.cover,
                       ),
                     ),
+                    if (state.imageUrl.isNotEmpty)
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.public, color: Colors.white, size: 13),
+                              const SizedBox(width: 5),
+                              Text(
+                                'FROM URL',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     Positioned(
                       top: 10,
                       right: 10,
@@ -365,7 +381,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                     ),
                     GestureDetector(
                       onTap: () => _pasteLink(),
-                      child: Icon(Icons.link, color: c.muted, size: 22),
+                      child: Icon(Icons.link, color: c.accentText, size: 22),
                     ),
                   ],
                 ),

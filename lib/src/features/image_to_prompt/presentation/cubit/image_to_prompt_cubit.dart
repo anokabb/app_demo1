@@ -67,11 +67,28 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   void clearPickedImage() {
-    emit(state.copyWith(pickedImageBytes: const Unset(), pickedImageMime: const Unset()));
+    emit(state.copyWith(pickedImageBytes: const Unset(), pickedImageMime: const Unset(), imageUrl: ''));
   }
 
   void setImageUrl(String url) {
     emit(state.copyWith(imageUrl: url.trim(), genError: const Unset()));
+  }
+
+  /// Called when the user explicitly pastes a URL (as opposed to typing one) —
+  /// fetches it right away so the image shows in the preview immediately,
+  /// instead of waiting until Generate is pressed.
+  Future<void> pasteImageUrl(String url) async {
+    final trimmed = url.trim();
+    emit(state.copyWith(imageUrl: trimmed, genError: const Unset()));
+    if (trimmed.isEmpty) return;
+
+    emit(state.copyWith(isFetchingUrlPreview: true));
+    final fetched = await ImageUrlFetcher.fetch(trimmed);
+    emit(state.copyWith(isFetchingUrlPreview: false));
+    fetched.fold(
+      (_) => showTopAlert("Couldn't load that image URL.", isError: true),
+      (data) => emit(state.copyWith(pickedImageBytes: data.$1, pickedImageMime: data.$2)),
+    );
   }
 
   // ── options ─────────────────────────────────────────────────────────────
@@ -124,7 +141,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
       bytes = fetchedData.$1;
       mimeType = fetchedData.$2;
-      emit(state.copyWith(pickedImageBytes: bytes, pickedImageMime: mimeType, imageUrl: ''));
+      emit(state.copyWith(pickedImageBytes: bytes, pickedImageMime: mimeType));
     } else {
       bytes = state.pickedImageBytes;
       if (bytes == null) {

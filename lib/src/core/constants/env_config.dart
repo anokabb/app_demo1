@@ -31,8 +31,6 @@ class EnvConfig {
     devBox.put('env', env);
   }
 
-  static const bool FORCE_UPDATE = false;
-
 // for testing in debug mode
   static String get TEST_PHONE_NUMBER => !kDebugMode ? '' : dotenv.get('TEST_PHONE_NUMBER', fallback: '');
   static String get TEST_OTP => !kDebugMode ? '' : dotenv.get('TEST_OTP', fallback: '');

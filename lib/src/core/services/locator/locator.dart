@@ -54,8 +54,7 @@ void setupLocator() {
   locator.registerLazySingleton<AuthCubit>(() => AuthCubit(locator<AuthRepo>()));
   locator.registerLazySingleton<ImageToPromptCubit>(() => ImageToPromptCubit());
 
-  // 5. Remote Config / RevenueCat — registered but not yet initialized
-  // (Firebase isn't wired up in main.dart yet); inert until then.
+  // 5. Remote Config / RevenueCat — initialized in main.dart after locator setup.
   locator.registerLazySingleton<RemoteConfigService>(() => RemoteConfigService());
   locator.registerLazySingleton<RevenueCatService>(() => RevenueCatService());
   locator.registerLazySingleton<SubscriptionCubit>(() => SubscriptionCubit(locator<RemoteConfigService>()));

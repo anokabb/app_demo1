@@ -1,9 +1,12 @@
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
+import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/services/logger/logger.dart';
 import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/models/remote_config_models.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
+import 'package:flutter_app_template/src/features/paywall/presentation/views/paywall_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -11,7 +14,6 @@ part 'subscription_state.dart';
 
 class SubscriptionCubit extends Cubit<SubscriptionState> {
   final RemoteConfigService _remoteConfigService;
-  final _revenueCatService = RevenueCatService();
   final _logger = getLogger('SubscriptionCubit');
 
   // Usage tracking key
@@ -95,20 +97,24 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     }
   }
 
-  /// Present the RevenueCat paywall and re-check status after
+  /// Push the routed paywall page and re-check status after
   Future<void> showPaywall(PaywallOffers paywallOffer) async {
     if (state.isSubscriber) return;
     try {
       emit(state.copyWith(isLoading: true, error: null));
 
-      await _revenueCatService.presentPaywallIfNeeded(paywallOffer);
+      final context = rootNavigatorKey.currentContext;
+      if (context != null) {
+        await context.push(PaywallPage.routeName, extra: paywallOffer);
+        await checkSubscriptionStatus();
 
-      // Check status after paywall interaction
-      await checkSubscriptionStatus();
-
-      // If user is not subscriber and paywall offer is not second offer, check if discount should be shown
-      if (!state.isSubscriber && paywallOffer != PaywallOffers.second_offer && await _shouldShowDiscountPaywall()) {
-        await showPaywall(PaywallOffers.second_offer);
+        // If user is not subscriber and paywall offer is not second offer, check if discount should be shown
+        if (!state.isSubscriber && paywallOffer != PaywallOffers.second_offer && await _shouldShowDiscountPaywall()) {
+          await showPaywall(PaywallOffers.second_offer);
+        }
+      } else {
+        _logger.e('No context available for navigation');
+        emit(state.copyWith(isLoading: false, error: 'Navigation context not available'));
       }
     } catch (e) {
       _logger.e('Failed to present paywall: $e');

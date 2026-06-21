@@ -8,6 +8,7 @@ import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
@@ -45,7 +46,7 @@ class App extends StatelessWidget {
                 builder: (context, child) {
                   Widget upgraderChild = UpgradeAlert(
                     navigatorKey: rootNavigatorKey,
-                    barrierDismissible: !EnvConfig.FORCE_UPDATE,
+                    barrierDismissible: !locator<RemoteConfigService>().isForceUpdate,
                     dialogStyle: UpgradeDialogStyle.cupertino,
                     upgrader: Upgrader(
                       debugDisplayAlways: devBox.get('debugUpgrader', defaultValue: false),
@@ -70,7 +71,7 @@ class App extends StatelessWidget {
                         confirmText: context.localization.updateNow.toUpperCase(),
                         onConfirm: onUpdate,
                         actions: [
-                          if (!EnvConfig.FORCE_UPDATE)
+                          if (!locator<RemoteConfigService>().isForceUpdate)
                             AppButton(
                               label: context.localization.later.toUpperCase(),
                               backgroundColor: context.theme.appColors.secondaryBackground,

@@ -17,6 +17,7 @@ class ImageToPromptState {
   final Uint8List? pickedImageBytes;
   final String? pickedImageMime;
   final String imageUrl;
+  final bool isFetchingUrlPreview;
   final bool isGenerating;
   final String generatedPrompt;
   final String? genError;
@@ -41,6 +42,7 @@ class ImageToPromptState {
     this.pickedImageBytes,
     this.pickedImageMime,
     this.imageUrl = '',
+    this.isFetchingUrlPreview = false,
     this.isGenerating = false,
     this.generatedPrompt = '',
     this.genError,
@@ -66,6 +68,7 @@ class ImageToPromptState {
     Object? pickedImageBytes = _unspecified,
     Object? pickedImageMime = _unspecified,
     String? imageUrl,
+    bool? isFetchingUrlPreview,
     bool? isGenerating,
     String? generatedPrompt,
     Object? genError = _unspecified,
@@ -94,6 +97,7 @@ class ImageToPromptState {
           ? this.pickedImageMime
           : (pickedImageMime is Unset ? null : pickedImageMime as String?),
       imageUrl: imageUrl ?? this.imageUrl,
+      isFetchingUrlPreview: isFetchingUrlPreview ?? this.isFetchingUrlPreview,
       isGenerating: isGenerating ?? this.isGenerating,
       generatedPrompt: generatedPrompt ?? this.generatedPrompt,
       genError: genError == _unspecified ? this.genError : (genError is Unset ? null : genError as String?),

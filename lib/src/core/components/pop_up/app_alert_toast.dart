@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -133,6 +134,8 @@ OverlayEntry? _activeToastEntry;
 
 /// Shows the unified bottom-sliding alert/error toast.
 void showAppAlert(String message, {bool isError = false}) {
+  isError ? HapticFeedback.heavyImpact() : HapticFeedback.lightImpact();
+
   final overlayState = rootNavigatorKey.currentState?.overlay;
   if (overlayState == null) return;
 

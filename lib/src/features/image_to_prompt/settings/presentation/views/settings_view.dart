@@ -91,11 +91,6 @@ class _SettingsBody extends StatelessWidget {
   final PromptColors c;
   const _SettingsBody({required this.state, required this.cubit, required this.c});
 
-  static const _aboutRows = [
-    ('Rate the app', ''),
-    ('App version', '2.4.0'),
-  ];
-
   Future<void> _openUrl(String url) async {
     try {
       final uri = Uri.parse(url);
@@ -105,15 +100,6 @@ class _SettingsBody extends StatelessWidget {
       if (!launched) throw Exception('Could not launch $url');
     } catch (e) {
       showTopError('Could not open the link');
-    }
-  }
-
-  Future<void> _openEmail(String email) async {
-    try {
-      final launched = await launchUrl(Uri.parse('mailto:$email'));
-      if (!launched) throw Exception('Could not launch mailto:$email');
-    } catch (e) {
-      showTopError('Could not open your email app');
     }
   }
 
@@ -155,18 +141,6 @@ class _SettingsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = locator<RemoteConfigService>().data.settings;
-
-    final legalRows = <_LegalRow>[
-      if (settings.privacyPolicyUrl.isNotEmpty)
-        _LegalRow(Icons.privacy_tip_outlined, 'Privacy Policy', () => _openUrl(settings.privacyPolicyUrl)),
-      if (settings.termsOfServiceUrl.isNotEmpty)
-        _LegalRow(Icons.description_outlined, 'Terms of Service', () => _openUrl(settings.termsOfServiceUrl)),
-      if (settings.aboutUrl.isNotEmpty) _LegalRow(Icons.info_outline, 'About', () => _openUrl(settings.aboutUrl)),
-      if (settings.helpAndSupportUrl.isNotEmpty)
-        _LegalRow(Icons.help_outline, 'Help & Support', () => _openUrl(settings.helpAndSupportUrl)),
-      if (settings.contactUsEmail.isNotEmpty)
-        _LegalRow(Icons.mail_outline, 'Contact Us', () => _openEmail(settings.contactUsEmail)),
-    ];
 
     final showDeleteAccount = settings.enableAccountDeletion && settings.accountDeletionUrl.isNotEmpty;
     final showDeleteData = settings.enableDataDeletion;
@@ -247,102 +221,6 @@ class _SettingsBody extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 26),
-        _SectionLabel(label: 'ALERTS', c: c),
-        Container(
-          decoration: BoxDecoration(
-            color: c.card,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [PromptColors.cardShadow],
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: Column(
-            children: [
-              _SettingsRow(
-                icon: Icons.check_circle_outline,
-                title: 'Show sample alert',
-                trailing: '',
-                c: c,
-                isFirst: true,
-                onTap: () => showTopAlert('This is a sample alert.'),
-              ),
-              _SettingsRow(
-                icon: Icons.error_outline,
-                title: 'Show sample error',
-                trailing: '',
-                c: c,
-                onTap: () => showTopError('This is a sample error.'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 26),
-        _SectionLabel(label: 'ABOUT', c: c),
-        Container(
-          decoration: BoxDecoration(
-            color: c.card,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [PromptColors.cardShadow],
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: Column(
-            children: List.generate(_aboutRows.length, (i) {
-              final row = _aboutRows[i];
-              return Column(
-                children: [
-                  if (i > 0) Divider(color: c.line, thickness: 1, height: 1),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            row.$1,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: c.ink,
-                            ),
-                          ),
-                        ),
-                        if (row.$2.isNotEmpty)
-                          Text(
-                            row.$2,
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.muted),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }),
-          ),
-        ),
-        if (legalRows.isNotEmpty) ...[
-          const SizedBox(height: 26),
-          _SectionLabel(label: 'LEGAL & SUPPORT', c: c),
-          Container(
-            decoration: BoxDecoration(
-              color: c.card,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [PromptColors.cardShadow],
-            ),
-            clipBehavior: Clip.hardEdge,
-            child: Column(
-              children: List.generate(legalRows.length, (i) {
-                final row = legalRows[i];
-                return _SettingsRow(
-                  icon: row.icon,
-                  title: row.title,
-                  trailing: '',
-                  c: c,
-                  isFirst: i == 0,
-                  onTap: row.onTap,
-                );
-              }),
-            ),
-          ),
-        ],
         if (showDeleteAccount || showDeleteData) ...[
           const SizedBox(height: 26),
           _SectionLabel(label: 'ACCOUNT', c: c),
@@ -391,13 +269,6 @@ class _SettingsBody extends StatelessWidget {
       ],
     );
   }
-}
-
-class _LegalRow {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  const _LegalRow(this.icon, this.title, this.onTap);
 }
 
 class _SectionLabel extends StatelessWidget {

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileView extends StatefulWidget {
   static const routeName = '/image-to-prompt/profile';
@@ -21,13 +24,33 @@ class _ProfileViewState extends State<ProfileView> {
     (icon: Icons.workspace_premium_outlined, label: 'Subscription'),
     (icon: Icons.credit_card_outlined, label: 'Billing & Payment'),
     (icon: Icons.shield_outlined, label: 'Privacy & Security'),
-    (icon: Icons.help_outline, label: 'Help & Support'),
   ];
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      // inAppWebView keeps the user inside the app (SFSafariViewController /
+      // Chrome Custom Tab on mobile) instead of switching to the external browser.
+      final launched = await launchUrl(uri, mode: LaunchMode.inAppWebView);
+      if (!launched) throw Exception('Could not launch $url');
+    } catch (e) {
+      showTopError('Could not open the link');
+    }
+  }
+
+  Future<void> _openEmail(String email) async {
+    try {
+      final launched = await launchUrl(Uri.parse('mailto:$email'));
+      if (!launched) throw Exception('Could not launch mailto:$email');
+    } catch (e) {
+      showTopError('Could not open your email app');
+    }
   }
 
   @override
@@ -46,6 +69,19 @@ class _ProfileViewState extends State<ProfileView> {
           (state.history.length.toString(), 'PROMPTS'),
           (state.history.where((e) => e.isSaved).length.toString(), 'SAVED'),
           ('∞', 'CREDITS'),
+        ];
+        final settings = locator<RemoteConfigService>().data.settings;
+        final legalRows = <_ProfileLink>[
+          if (settings.privacyPolicyUrl.isNotEmpty)
+            _ProfileLink(Icons.privacy_tip_outlined, 'Privacy Policy', () => _openUrl(settings.privacyPolicyUrl)),
+          if (settings.termsOfServiceUrl.isNotEmpty)
+            _ProfileLink(Icons.description_outlined, 'Terms of Service', () => _openUrl(settings.termsOfServiceUrl)),
+          if (settings.aboutUrl.isNotEmpty)
+            _ProfileLink(Icons.info_outline, 'About', () => _openUrl(settings.aboutUrl)),
+          if (settings.helpAndSupportUrl.isNotEmpty)
+            _ProfileLink(Icons.help_outline, 'Help & Support', () => _openUrl(settings.helpAndSupportUrl)),
+          if (settings.contactUsEmail.isNotEmpty)
+            _ProfileLink(Icons.mail_outline, 'Contact Us', () => _openEmail(settings.contactUsEmail)),
         ];
         return Scaffold(
           backgroundColor: c.page,
@@ -204,43 +240,56 @@ class _ProfileViewState extends State<ProfileView> {
                 child: Column(
                   children: List.generate(_menuItems.length, (i) {
                     final item = _menuItems[i];
-                    return Column(
-                      children: [
-                        if (i > 0) Divider(color: c.line, thickness: 1, height: 1),
-                        InkWell(
-                          onTap: () {},
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: c.iconBox,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(item.icon, color: c.accentText, size: 20),
-                                ),
-                                const SizedBox(width: 15),
-                                Expanded(
-                                  child: Text(
-                                    item.label,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: c.ink,
-                                    ),
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right, color: c.line, size: 18),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    return _ProfileRow(
+                      icon: item.icon,
+                      title: item.label,
+                      c: c,
+                      isFirst: i == 0,
+                      onTap: () {},
                     );
                   }),
+                ),
+              ),
+
+              if (legalRows.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                _ProfileSectionLabel(label: 'LEGAL & SUPPORT', c: c),
+                Container(
+                  decoration: BoxDecoration(
+                    color: c.card,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [PromptColors.cardShadow],
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: Column(
+                    children: List.generate(legalRows.length, (i) {
+                      final row = legalRows[i];
+                      return _ProfileRow(
+                        icon: row.icon,
+                        title: row.title,
+                        c: c,
+                        isFirst: i == 0,
+                        onTap: row.onTap,
+                      );
+                    }),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 18),
+              _ProfileSectionLabel(label: 'ABOUT', c: c),
+              Container(
+                decoration: BoxDecoration(
+                  color: c.card,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [PromptColors.cardShadow],
+                ),
+                clipBehavior: Clip.hardEdge,
+                child: Column(
+                  children: [
+                    _ProfileRow(icon: Icons.star_outline, title: 'Rate the app', c: c, isFirst: true),
+                    _ProfileRow(icon: Icons.info_outline, title: 'App version', trailing: '2.4.0', c: c),
+                  ],
                 ),
               ),
               const SizedBox(height: 18),
@@ -269,6 +318,87 @@ class _ProfileViewState extends State<ProfileView> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ProfileLink {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  const _ProfileLink(this.icon, this.title, this.onTap);
+}
+
+class _ProfileSectionLabel extends StatelessWidget {
+  final String label;
+  final PromptColors c;
+  const _ProfileSectionLabel({required this.label, required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 12, top: 10),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.68,
+          color: c.muted,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String trailing;
+  final PromptColors c;
+  final bool isFirst;
+  final VoidCallback? onTap;
+
+  const _ProfileRow({
+    required this.icon,
+    required this.title,
+    required this.c,
+    this.trailing = '',
+    this.isFirst = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (!isFirst) Divider(color: c.line, thickness: 1, height: 1),
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(color: c.iconBox, borderRadius: BorderRadius.circular(12)),
+                  child: Icon(icon, color: c.accentText, size: 20),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: c.ink)),
+                ),
+                if (trailing.isNotEmpty) ...[
+                  Text(trailing, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.muted)),
+                  const SizedBox(width: 6),
+                ],
+                if (onTap != null) Icon(Icons.chevron_right, color: c.line, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

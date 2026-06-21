@@ -574,6 +574,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                                     onTap: () {
                                       Clipboard.setData(ClipboardData(text: state.generatedPrompt));
                                       cubit.copyResult();
+                                      showTopAlert('Copied to clipboard');
                                     },
                                     child: Container(
                                       decoration: BoxDecoration(
@@ -749,6 +750,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                                       onTap: () {
                                         Clipboard.setData(ClipboardData(text: item.prompt));
                                         cubit.copyRecent(i);
+                                        showTopAlert('Copied to clipboard');
                                       },
                                       child: Container(
                                         decoration: BoxDecoration(

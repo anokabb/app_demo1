@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
@@ -222,6 +222,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   void deleteHistoryEntry(String id) {
+    HapticFeedback.mediumImpact();
     persistsData.delete(_imageKey(id));
     final updated = state.history.where((e) => e.id != id).toList();
     _persistHistory(updated);
@@ -229,6 +230,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   void deleteHistoryEntries(Iterable<String> ids) {
+    HapticFeedback.mediumImpact();
     final idSet = ids.toSet();
     for (final id in idSet) {
       persistsData.delete(_imageKey(id));

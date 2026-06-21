@@ -17,6 +17,8 @@ import 'package:flutter_app_template/src/features/image_to_prompt/history/presen
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/settings/presentation/views/settings_view.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/pages/language_page.dart';
+import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
+import 'package:flutter_app_template/src/features/paywall/presentation/views/paywall_page.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/pages/theme_page.dart';
 import 'package:go_router/go_router.dart';
 
@@ -115,6 +117,14 @@ class AppRouter {
         path: HistoryDetailView.routeName,
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => CupertinoPage(child: HistoryDetailView(entry: state.extra as HistoryEntryModel)),
+      ),
+      GoRoute(
+        path: PaywallPage.routeName,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final paywallOffer = state.extra as PaywallOffers? ?? PaywallOffers.first_offer;
+          return CupertinoPage(child: PaywallPage(paywallOffer: paywallOffer));
+        },
       ),
     ];
   }

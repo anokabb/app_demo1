@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/settings/presentation/views/settings_view.dart';
@@ -18,6 +20,15 @@ class ImageToPromptShell extends StatefulWidget {
 
 class _ImageToPromptShellState extends State<ImageToPromptShell> {
   final cubit = locator<ImageToPromptCubit>();
+
+  @override
+  void initState() {
+    super.initState();
+    // RevenueCat (and therefore the paywall) isn't available on web, see main.dart.
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => locator<SubscriptionCubit>().showAppOpenPaywall());
+    }
+  }
 
   void _onTabTap(int index) {
     cubit.requestScrollToTop(index);

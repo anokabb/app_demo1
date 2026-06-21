@@ -34179,7 +34179,7 @@ case 3:return B.aJG
 case 4:return B.Pr}},
 R9(a,b){var s=0,r=A.v(t.y),q,p
 var $async$R9=A.q(function(c,d){if(c===1)return A.r(d,r)
-while(true)switch(s){case 0:if(b===B.p9||b===B.a0p)p=!(a.gea()==="https"||a.gea()==="http")
+while(true)switch(s){case 0:if(b===B.a0p||b===B.p9)p=!(a.gea()==="https"||a.gea()==="http")
 else p=!1
 if(p)throw A.e(A.fd(a,"url","To use an in-app web view, you must provide an http(s) URL."))
 q=$.b2n().z8(a.j(0),new A.XO(A.btK(b),new A.Xn(!0,!0,B.eG),null))
@@ -119684,8 +119684,8 @@ B.kZ=new A.H3(2,"sizedSpan")
 B.a0n=new A.XM(!1,255)
 B.a0o=new A.XN(255)
 B.wA=new A.zo(0,"platformDefault")
-B.p9=new A.zo(1,"inAppWebView")
-B.a0p=new A.zo(2,"inAppBrowserView")
+B.a0p=new A.zo(1,"inAppWebView")
+B.p9=new A.zo(2,"inAppBrowserView")
 B.a0q=new A.zo(4,"externalNonBrowserApplication")
 B.a0r=new A.v_(0,0,"all")
 B.a0s=new A.v_(1e4,10,"off")

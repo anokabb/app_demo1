@@ -99,7 +99,9 @@ class _SettingsBody extends StatelessWidget {
   Future<void> _openUrl(String url) async {
     try {
       final uri = Uri.parse(url);
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      // inAppWebView keeps the user inside the app (SFSafariViewController /
+      // Chrome Custom Tab on mobile) instead of switching to the external browser.
+      final launched = await launchUrl(uri, mode: LaunchMode.inAppWebView);
       if (!launched) throw Exception('Could not launch $url');
     } catch (e) {
       showTopError('Could not open the link');

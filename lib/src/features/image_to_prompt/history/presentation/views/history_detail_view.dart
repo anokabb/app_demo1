@@ -109,7 +109,6 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
   void _openImagePreview(Uint8List bytes) {
     Navigator.of(context).push(PageRouteBuilder(
       opaque: false,
-      barrierColor: Colors.black,
       transitionDuration: const Duration(milliseconds: 220),
       reverseTransitionDuration: const Duration(milliseconds: 180),
       pageBuilder: (context, animation, secondaryAnimation) {

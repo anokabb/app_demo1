@@ -6,6 +6,7 @@ import 'package:flutter_app_template/src/features/auth/presentation/pages/otp_ve
 import 'package:flutter_app_template/src/features/auth/presentation/pages/register_page.dart';
 import 'package:flutter_app_template/src/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flutter_app_template/src/features/dev/presentation/views/dev_mode_view.dart';
+import 'package:flutter_app_template/src/features/onboarding/presentation/views/splash_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
 
@@ -44,6 +45,6 @@ class AuthGuard {
     // }
 
     // Allow access to authenticated routes
-    return path == AppRouter.baseRoute ? AppRouter.defaultRoute : null;
+    return path == AppRouter.baseRoute ? SplashView.routeName : null;
   }
 }

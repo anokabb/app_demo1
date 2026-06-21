@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
+import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
 
 /// Unified alert/error toast UI — used for both success and error messages.
+/// Adapts its colors to the app's current light/dark theme.
 class AppAlertToast extends StatelessWidget {
   final String message;
   final bool isError;
@@ -12,17 +14,22 @@ class AppAlertToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeCubit.isDarkMode;
     final accent = isError ? const Color(0xFFE5484D) : const Color(0xFF30A46C);
+    final background = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
+
     return Material(
       color: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1E),
+          color: background,
           borderRadius: BorderRadius.circular(18),
+          border: isDark ? null : Border.all(color: const Color(0xFFE7E1F2), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
               blurRadius: 24,
               offset: const Offset(0, 10),
             ),
@@ -42,7 +49,7 @@ class AppAlertToast extends StatelessWidget {
                 message,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13.5),
+                style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 13.5),
               ),
             ),
           ],

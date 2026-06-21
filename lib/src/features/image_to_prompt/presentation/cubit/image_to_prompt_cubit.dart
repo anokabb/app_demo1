@@ -211,6 +211,16 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     emit(state.copyWith(history: updated));
   }
 
+  void deleteHistoryEntries(Iterable<String> ids) {
+    final idSet = ids.toSet();
+    for (final id in idSet) {
+      persistsData.delete(_imageKey(id));
+    }
+    final updated = state.history.where((e) => !idSet.contains(e.id)).toList();
+    _persistHistory(updated);
+    emit(state.copyWith(history: updated));
+  }
+
   void toggleHistorySaved(String id) {
     final updated = state.history.map((e) => e.id == id ? e.copyWith(isSaved: !e.isSaved) : e).toList();
     _persistHistory(updated);
@@ -229,10 +239,11 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     emit(state.copyWith(
       pickedImageBytes: entry.imageBytes,
       pickedImageMime: entry.mimeType,
-      generatedPrompt: entry.prompt,
-      showResult: true,
       imageUrl: '',
+      showResult: false,
+      generatedPrompt: '',
     ));
+    requestScrollToTop(0);
   }
 
   // ── copy feedback flags ─────────────────────────────────────────────────

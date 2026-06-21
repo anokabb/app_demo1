@@ -6,6 +6,7 @@ import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/delete_confirm_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -92,7 +93,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
       context: context,
       backgroundColor: c.card,
       borderRadius: BorderRadius.circular(24),
-      child: _DeleteConfirmSheet(c: c),
+      child: DeleteConfirmSheet(c: c),
     );
     if (confirmed != true) return;
     cubit.deleteHistoryEntry(entry.id);
@@ -355,9 +356,7 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
   static const _dismissThreshold = 120.0;
   static const _dismissVelocity = 800.0;
   static const _maxDragForFade = 280.0;
-  static const _minZoom = 1.0;
-  static const _maxZoom = 5.0;
-  static const _zoomStep = 0.75;
+  static const _doubleTapZoomScale = 2.75;
 
   final _transformController = TransformationController();
   late final AnimationController _dragAnim;
@@ -430,24 +429,24 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
     _dragAnim.forward(from: 0);
   }
 
-  void _zoomIn() => _setZoom(_zoomScale + _zoomStep);
+  TapDownDetails? _doubleTapDetails;
 
-  void _zoomOut() => _setZoom(_zoomScale - _zoomStep);
+  void _onDoubleTapDown(TapDownDetails details) {
+    _doubleTapDetails = details;
+  }
 
-  void _setZoom(double targetScale) {
-    final clamped = targetScale.clamp(_minZoom, _maxZoom);
-    if (clamped <= _minZoom) {
+  void _onDoubleTap() {
+    final details = _doubleTapDetails;
+    if (details == null) return;
+    if (_zoomScale > 1.01) {
       _transformController.value = Matrix4.identity();
       return;
     }
-    final currentScale = _transformController.value.getMaxScaleOnAxis();
-    final factor = clamped / currentScale;
-    final center = Offset(context.width / 2, context.height / 2);
-    final matrix = _transformController.value.clone()
-      ..translate(center.dx, center.dy)
-      ..scale(factor)
-      ..translate(-center.dx, -center.dy);
-    _transformController.value = matrix;
+    final position = details.localPosition;
+    const scale = _doubleTapZoomScale;
+    _transformController.value = Matrix4.identity()
+      ..translate(-position.dx * (scale - 1), -position.dy * (scale - 1))
+      ..scale(scale);
   }
 
   @override
@@ -469,6 +468,8 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
               onVerticalDragStart: _canDismissDrag ? _onVerticalDragStart : null,
               onVerticalDragUpdate: _canDismissDrag ? _onVerticalDragUpdate : null,
               onVerticalDragEnd: _canDismissDrag ? _onVerticalDragEnd : null,
+              onDoubleTapDown: _onDoubleTapDown,
+              onDoubleTap: _onDoubleTap,
               child: Transform.translate(
                 offset: _dragOffset,
                 child: Transform.scale(
@@ -495,29 +496,6 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
                   icon: Icons.close,
                   opacity: backgroundOpacity,
                   onTap: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Column(
-                  children: [
-                    _PreviewIconButton(
-                      icon: Icons.add,
-                      opacity: backgroundOpacity,
-                      onTap: _zoomIn,
-                    ),
-                    const SizedBox(height: 10),
-                    _PreviewIconButton(
-                      icon: Icons.remove,
-                      opacity: backgroundOpacity,
-                      onTap: _zoomOut,
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -709,67 +687,6 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _DeleteConfirmSheet extends StatelessWidget {
-  final PromptColors c;
-
-  const _DeleteConfirmSheet({required this.c});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE5484D).withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.delete_outline, color: Color(0xFFE5484D), size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Remove from history?',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: c.ink),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This prompt and its image will be permanently removed from your history.',
-            style: TextStyle(fontSize: 14, color: c.muted, height: 1.4),
-          ),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.close,
-                  label: 'Cancel',
-                  c: c,
-                  onTap: () => Navigator.of(context).pop(false),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.delete_outline,
-                  label: 'Delete',
-                  danger: true,
-                  c: c,
-                  onTap: () => Navigator.of(context).pop(true),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

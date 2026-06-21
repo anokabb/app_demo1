@@ -2,8 +2,11 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
+import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/delete_confirm_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/history_filters_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
@@ -36,11 +39,67 @@ class _HistoryViewState extends State<HistoryView> {
 
   static const _filters = ['All', 'Today', 'This Week'];
 
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+
   @override
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _enterSelectionMode(String id) {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds.add(id);
+    });
+  }
+
+  void _toggleSelected(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  Future<bool> _confirmDeleteSingle(PromptColors c) async {
+    final confirmed = await SlideUpPopUp.show<bool>(
+      context: context,
+      backgroundColor: c.card,
+      borderRadius: BorderRadius.circular(24),
+      child: DeleteConfirmSheet(c: c),
+    );
+    return confirmed == true;
+  }
+
+  Future<void> _confirmBulkDelete(PromptColors c) async {
+    final count = _selectedIds.length;
+    final confirmed = await SlideUpPopUp.show<bool>(
+      context: context,
+      backgroundColor: c.card,
+      borderRadius: BorderRadius.circular(24),
+      child: DeleteConfirmSheet(
+        c: c,
+        title: 'Remove $count item${count == 1 ? '' : 's'}?',
+        message: 'These prompts and their images will be permanently removed from your history.',
+        confirmLabel: 'Delete',
+      ),
+    );
+    if (confirmed != true) return;
+    cubit.deleteHistoryEntries(_selectedIds);
+    showTopAlert('Removed $count item${count == 1 ? '' : 's'}');
+    _exitSelectionMode();
   }
 
   @override
@@ -59,24 +118,63 @@ class _HistoryViewState extends State<HistoryView> {
 
         return Scaffold(
           backgroundColor: c.page,
-          body: ListView(
+          body: Stack(
+            children: [
+              ListView(
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(22, 8, 22, 130),
             children: [
-              Text(
-                'History',
-                style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.33,
-                  height: 1.04,
-                  color: c.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'All your generated prompts in one place.',
-                style: TextStyle(fontSize: 16, height: 1.45, color: c.muted),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'History',
+                          style: TextStyle(
+                            fontSize: 38,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1.33,
+                            height: 1.04,
+                            color: c.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'All your generated prompts in one place.',
+                          style: TextStyle(fontSize: 16, height: 1.45, color: c.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (groups.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_selectionMode) {
+                            _exitSelectionMode();
+                          } else {
+                            setState(() => _selectionMode = true);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                          decoration: BoxDecoration(color: c.field, borderRadius: BorderRadius.circular(14)),
+                          child: Text(
+                            _selectionMode ? 'Cancel' : 'Select',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: _selectionMode ? c.muted : c.accentText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 22),
 
@@ -250,13 +348,18 @@ class _HistoryViewState extends State<HistoryView> {
                     ),
                     ...group.items.map((entry) {
                       final globalIndex = state.filteredHistory.indexOf(entry);
+                      final selected = _selectedIds.contains(entry.id);
                       return Padding(
                         key: ValueKey(entry.id),
                         padding: const EdgeInsets.only(bottom: 14),
                         child: Dismissible(
                           key: ValueKey('dismiss-${entry.id}'),
-                          direction: DismissDirection.endToStart,
-                          onDismissed: (_) => cubit.deleteHistoryEntry(entry.id),
+                          direction: _selectionMode ? DismissDirection.none : DismissDirection.endToStart,
+                          confirmDismiss: (_) => _confirmDeleteSingle(c),
+                          onDismissed: (_) {
+                            cubit.deleteHistoryEntry(entry.id);
+                            showTopAlert('Removed from history');
+                          },
                           background: Container(
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 22),
@@ -267,16 +370,34 @@ class _HistoryViewState extends State<HistoryView> {
                             child: const Icon(Icons.delete_outline, color: Colors.white),
                           ),
                           child: GestureDetector(
-                            onTap: () => context.push(HistoryDetailView.routeName, extra: entry),
-                            child: _HistoryCard(
-                              entry: entry,
-                              c: c,
-                              copied: state.histCopied == globalIndex,
-                              onCopy: () {
-                                Clipboard.setData(ClipboardData(text: entry.prompt));
-                                cubit.copyHistory(globalIndex);
-                              },
-                              onToggleSaved: () => cubit.toggleHistorySaved(entry.id),
+                            onTap: () {
+                              if (_selectionMode) {
+                                _toggleSelected(entry.id);
+                              } else {
+                                context.push(HistoryDetailView.routeName, extra: entry);
+                              }
+                            },
+                            onLongPress: _selectionMode ? null : () => _enterSelectionMode(entry.id),
+                            child: Stack(
+                              children: [
+                                _HistoryCard(
+                                  entry: entry,
+                                  c: c,
+                                  copied: state.histCopied == globalIndex,
+                                  onCopy: () {
+                                    Clipboard.setData(ClipboardData(text: entry.prompt));
+                                    cubit.copyHistory(globalIndex);
+                                    showTopAlert('Copied to clipboard');
+                                  },
+                                  onToggleSaved: () => cubit.toggleHistorySaved(entry.id),
+                                ),
+                                if (_selectionMode)
+                                  Positioned(
+                                    top: 10,
+                                    left: 10,
+                                    child: _SelectionCheckbox(selected: selected, c: c),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
@@ -286,8 +407,81 @@ class _HistoryViewState extends State<HistoryView> {
                 }),
             ],
           ),
+              if (_selectionMode && _selectedIds.isNotEmpty)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    child: _BulkDeleteBar(
+                      count: _selectedIds.length,
+                      onDelete: () => _confirmBulkDelete(c),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
+    );
+  }
+}
+
+class _SelectionCheckbox extends StatelessWidget {
+  final bool selected;
+  final PromptColors c;
+
+  const _SelectionCheckbox({required this.selected, required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? c.accentText : Colors.black.withValues(alpha: 0.35),
+        border: Border.all(color: Colors.white, width: 1.5),
+      ),
+      child: selected ? const Icon(Icons.check, color: Colors.white, size: 15) : null,
+    );
+  }
+}
+
+class _BulkDeleteBar extends StatelessWidget {
+  final int count;
+  final VoidCallback onDelete;
+
+  const _BulkDeleteBar({required this.count, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 0, 22, 18),
+      child: GestureDetector(
+        onTap: onDelete,
+        child: Container(
+          height: 56,
+          decoration: BoxDecoration(
+            color: const Color(0xFFD14343),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, 10)),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.delete_outline, color: Colors.white, size: 19),
+              const SizedBox(width: 8),
+              Text(
+                'Delete $count item${count == 1 ? '' : 's'}',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

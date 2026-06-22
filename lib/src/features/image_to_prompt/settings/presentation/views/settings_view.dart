@@ -3,6 +3,7 @@ import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
+import 'package:flutter_app_template/src/features/dev/presentation/views/app_version_widget.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/delete_confirm_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -11,7 +12,6 @@ import 'package:flutter_app_template/src/features/image_to_prompt/presentation/w
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/model_tier_picker_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SettingsView extends StatelessWidget {
   static const routeName = '/image-to-prompt/settings';
@@ -91,36 +91,6 @@ class _SettingsBody extends StatelessWidget {
   final PromptColors c;
   const _SettingsBody({required this.state, required this.cubit, required this.c});
 
-  Future<void> _openUrl(String url) async {
-    try {
-      final uri = Uri.parse(url);
-      // inAppBrowserView presents the native in-app browser (SFSafariViewController
-      // on iOS / Chrome Custom Tab on Android) as a bottom modal, instead of
-      // switching to the external browser app.
-      final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-      if (!launched) throw Exception('Could not launch $url');
-    } catch (e) {
-      showTopError('Could not open the link');
-    }
-  }
-
-  Future<void> _confirmDeleteAccount(BuildContext context, String accountDeletionUrl) async {
-    final confirmed = await SlideUpPopUp.show<bool>(
-      context: context,
-      backgroundColor: c.card,
-      borderRadius: BorderRadius.circular(24),
-      child: DeleteConfirmSheet(
-        c: c,
-        title: 'Delete your account?',
-        message: 'This will take you to a page to permanently delete your account. This action cannot be undone.',
-        confirmLabel: 'Continue',
-      ),
-    );
-    if (confirmed == true) {
-      await _openUrl(accountDeletionUrl);
-    }
-  }
-
   Future<void> _confirmDeleteData(BuildContext context) async {
     final confirmed = await SlideUpPopUp.show<bool>(
       context: context,
@@ -143,7 +113,6 @@ class _SettingsBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = locator<RemoteConfigService>().data.settings;
 
-    final showDeleteAccount = settings.enableAccountDeletion && settings.accountDeletionUrl.isNotEmpty;
     final showDeleteData = settings.enableDataDeletion;
 
     return ListView(
@@ -222,7 +191,7 @@ class _SettingsBody extends StatelessWidget {
             ],
           ),
         ),
-        if (showDeleteAccount || showDeleteData) ...[
+        if (showDeleteData) ...[
           const SizedBox(height: 26),
           _SectionLabel(label: 'ACCOUNT', c: c),
           Container(
@@ -232,39 +201,27 @@ class _SettingsBody extends StatelessWidget {
               boxShadow: [PromptColors.cardShadow],
             ),
             clipBehavior: Clip.hardEdge,
-            child: Column(
-              children: [
-                if (showDeleteAccount)
-                  _SettingsRow(
-                    icon: Icons.person_remove_outlined,
-                    title: 'Delete Account',
-                    trailing: '',
-                    c: c,
-                    isFirst: true,
-                    iconColor: PromptColors.danger,
-                    titleColor: PromptColors.danger,
-                    onTap: () => _confirmDeleteAccount(context, settings.accountDeletionUrl),
-                  ),
-                if (showDeleteData)
-                  _SettingsRow(
-                    icon: Icons.delete_outline,
-                    title: 'Delete My Data',
-                    trailing: '',
-                    c: c,
-                    isFirst: !showDeleteAccount,
-                    iconColor: PromptColors.danger,
-                    titleColor: PromptColors.danger,
-                    onTap: () => _confirmDeleteData(context),
-                  ),
-              ],
+            child: _SettingsRow(
+              icon: Icons.delete_outline,
+              title: 'Delete My Data',
+              trailing: '',
+              c: c,
+              isFirst: true,
+              iconColor: PromptColors.danger,
+              titleColor: PromptColors.danger,
+              onTap: () => _confirmDeleteData(context),
             ),
           ),
         ],
         const SizedBox(height: 24),
-        Center(
-          child: Text(
-            'PromptGen v2.4.0',
-            style: TextStyle(fontSize: 12, color: c.muted.withValues(alpha: 0.7)),
+        // Tap the version number 5 times to open the hidden dev-mode screen.
+        DevViewGestureDetector(
+          safeArea: false,
+          child: Center(
+            child: Text(
+              'PromptGen v2.4.0',
+              style: TextStyle(fontSize: 12, color: c.muted.withValues(alpha: 0.7)),
+            ),
           ),
         ),
       ],

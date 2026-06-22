@@ -138,6 +138,28 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
     }
   }
 
+  /// Remaining free-tier actions before the paywall kicks in (clamped to >= 0).
+  int get remainingFreeActions {
+    final limit = _remoteConfigService.data.revenueCat.freeLimit;
+    final remaining = limit - state.freeLimit;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  /// DEV ONLY — force the subscriber flag on/off so the pro experience can be
+  /// tested without a real purchase. Persisted so it survives a restart.
+  Future<void> setDevPro(bool isPro) async {
+    await devBox.put('isDevPro', isPro);
+    emit(state.copyWith(isSubscriber: isPro));
+    _logger.i('Dev pro override set to $isPro');
+  }
+
+  /// DEV ONLY — reset the consumed free-tier usage back to zero.
+  void resetFreeUsage() {
+    purchasesBox.put(_freeLimitKey, 0);
+    emit(state.copyWith(freeLimit: 0));
+    _logger.i('Free-tier usage reset to 0');
+  }
+
   /// Track usage for a metered, free-tier-gated action. Returns false (and
   /// shows the paywall) once the remote-config-defined free limit is reached.
   Future<bool> canUseFreeAction() async {

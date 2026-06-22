@@ -14,7 +14,6 @@ import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
 import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/cubit/auth_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +24,6 @@ void main() async {
 
   setupLocator();
   await locator.allReady();
-  await locator<AuthCubit>().checkAuthStatus();
 
   await locator<RemoteConfigService>().initialize();
   await locator<RemoteConfigService>().fetchAndActivate();

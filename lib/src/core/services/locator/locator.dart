@@ -6,9 +6,6 @@ import 'package:flutter_app_template/src/core/constants/env_config.dart';
 import 'package:flutter_app_template/src/core/network/client/dio_factory.dart';
 import 'package:flutter_app_template/src/core/network/client/interceptors/logger_interceptor.dart';
 import 'package:flutter_app_template/src/core/network/client/interceptors/mock_logger_interceptor.dart';
-import 'package:flutter_app_template/src/features/auth/data/repos/auth_repo.dart';
-import 'package:flutter_app_template/src/features/auth/data/repos/mock_auth_repo.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/gemini_image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
@@ -31,30 +28,21 @@ void setupLocator() {
     () => DioFactory.create(
       baseUrl: EnvConfig.baseUrl,
       interceptors: [
-        // AuthInterceptor(() => locator<AuthRepo>().getToken() ?? ''),
         isMockTesting ? MockLoggerInterceptor() : LoggerInterceptor(),
       ],
     ),
   );
 
-  // 2. APIs
-  // locator.registerLazySingleton<AuthApi>(() => AuthApi(locator<Dio>()));
-
-  // 3. Repositories
-  // No real AuthRepo implementation exists yet, so always use the mock until a backend is wired up.
-  locator.registerLazySingleton<AuthRepo>(() => MockAuthRepo());
-
-  // 3b. Image-to-prompt provider — swap this single line to switch providers
+  // 2. Image-to-prompt provider — swap this single line to switch providers
   // (e.g. `MockImagePromptRepo()`); everything else depends on `ImagePromptRepo`.
   locator.registerLazySingleton<ImagePromptRepo>(() => GeminiImagePromptRepo());
 
-  // 4. Cubits
+  // 3. Cubits
   locator.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
   locator.registerLazySingleton<LanguageCubit>(() => LanguageCubit());
-  locator.registerLazySingleton<AuthCubit>(() => AuthCubit(locator<AuthRepo>()));
   locator.registerLazySingleton<ImageToPromptCubit>(() => ImageToPromptCubit());
 
-  // 5. Remote Config / RevenueCat — initialized in main.dart after locator setup.
+  // 4. Remote Config / RevenueCat — initialized in main.dart after locator setup.
   locator.registerLazySingleton<RemoteConfigService>(() => RemoteConfigService());
   locator.registerLazySingleton<RevenueCatService>(() => RevenueCatService());
   locator.registerLazySingleton<SubscriptionCubit>(() => SubscriptionCubit(locator<RemoteConfigService>()));
@@ -67,6 +55,5 @@ void onLoggedIn(GetIt instance) async {
 List<BlocProvider> blocProviders = [
   BlocProvider<ThemeCubit>.value(value: locator<ThemeCubit>()),
   BlocProvider<LanguageCubit>.value(value: locator<LanguageCubit>()),
-  BlocProvider<AuthCubit>(create: (_) => locator<AuthCubit>(), lazy: false),
   BlocProvider<SubscriptionCubit>.value(value: locator<SubscriptionCubit>()),
 ];

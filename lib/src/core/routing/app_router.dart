@@ -1,16 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/routing/app_shell.dart';
-import 'package:flutter_app_template/src/core/routing/guards/auth_guard.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/create_tab.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/history_tab.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/profile_tab.dart';
-import 'package:flutter_app_template/src/core/services/logger/logger.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/forgot_password_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/login_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/otp_verification_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/register_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flutter_app_template/src/features/dev/presentation/views/dev_mode_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
@@ -30,16 +22,13 @@ class AppRouter {
   static const String baseRoute = '/';
   static const String defaultRoute = CreateView.routeName;
 
-  final _logger = getLogger('AppRouter');
-
   GoRouter createRouter() {
     return GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: baseRoute,
-      redirect: AuthGuard(_logger).redirect,
+      redirect: (context, state) => state.uri.path == baseRoute ? SplashView.routeName : null,
       routes: [
         _statefulShellRoute(),
-        ..._authenticationRoutes(),
         ..._otherRoutes(),
       ],
     );
@@ -54,46 +43,6 @@ class AppRouter {
         profileTabBranch,
       ],
     );
-  }
-
-  List<GoRoute> _authenticationRoutes() {
-    return [
-      GoRoute(
-        path: LoginPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const LoginPage(),
-        ),
-      ),
-      GoRoute(
-        path: RegisterPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const RegisterPage(),
-        ),
-      ),
-      GoRoute(
-        path: ForgotPasswordPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const ForgotPasswordPage(),
-        ),
-      ),
-      GoRoute(
-        path: OtpVerificationPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: OtpVerificationPage(email: state.extra as String),
-        ),
-      ),
-      GoRoute(
-        path: ResetPasswordPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: ResetPasswordPage(email: state.extra as String),
-        ),
-      ),
-    ];
   }
 
   List<RouteBase> _otherRoutes() {

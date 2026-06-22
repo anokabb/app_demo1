@@ -1,10 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
+import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileView extends StatefulWidget {
@@ -17,19 +23,21 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   final cubit = locator<ImageToPromptCubit>();
+  final _subscriptionCubit = locator<SubscriptionCubit>();
   final _scrollController = ScrollController();
-
-  static const _menuItems = [
-    (icon: Icons.bookmark_outline, label: 'Saved Prompts'),
-    (icon: Icons.workspace_premium_outlined, label: 'Subscription'),
-    (icon: Icons.credit_card_outlined, label: 'Billing & Payment'),
-    (icon: Icons.shield_outlined, label: 'Privacy & Security'),
-  ];
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _rateApp() async {
+    if (kIsWeb) return;
+    final review = InAppReview.instance;
+    if (await review.isAvailable()) {
+      await review.requestReview();
+    }
   }
 
   Future<void> _openUrl(String url) async {
@@ -66,12 +74,22 @@ class _ProfileViewState extends State<ProfileView> {
       },
       builder: (context, state) {
         final c = PromptColors(state.darkMode);
-        final stats = [
-          (state.history.length.toString(), 'PROMPTS'),
-          (state.history.where((e) => e.isSaved).length.toString(), 'SAVED'),
-          ('∞', 'CREDITS'),
-        ];
-        final settings = locator<RemoteConfigService>().data.settings;
+        return BlocBuilder<SubscriptionCubit, SubscriptionState>(
+          bloc: _subscriptionCubit,
+          builder: (context, subState) => _buildBody(context, c, subState.isSubscriber),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, PromptColors c, bool isPro) {
+    final freeLimit = locator<RemoteConfigService>().data.revenueCat.freeLimit;
+    final stats = [
+      (cubit.state.history.length.toString(), 'PROMPTS'),
+      (cubit.state.history.length.toString(), 'SAVED'),
+      (isPro ? 'Unlimited' : freeLimit.toString(), 'CREDITS'),
+    ];
+    final settings = locator<RemoteConfigService>().data.settings;
         final legalRows = <_ProfileLink>[
           if (settings.privacyPolicyUrl.isNotEmpty)
             _ProfileLink(Icons.privacy_tip_outlined, 'Privacy Policy', () => _openUrl(settings.privacyPolicyUrl)),
@@ -126,15 +144,10 @@ class _ProfileViewState extends State<ProfileView> {
                         color: Colors.white.withValues(alpha: 0.22),
                         border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
                       ),
-                      child: const Center(
-                        child: Text(
-                          'AC',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
+                      child: Icon(
+                        isPro ? Icons.workspace_premium_rounded : Icons.person_rounded,
+                        color: Colors.white,
+                        size: 32,
                       ),
                     ),
                     const SizedBox(width: 18),
@@ -143,7 +156,7 @@ class _ProfileViewState extends State<ProfileView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Alex Carter',
+                            'Hi there 👋',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
@@ -151,9 +164,9 @@ class _ProfileViewState extends State<ProfileView> {
                             ),
                           ),
                           const SizedBox(height: 3),
-                          const Text(
-                            '@alexcarter',
-                            style: TextStyle(fontSize: 13, color: Color(0xCCFFFFFF)),
+                          Text(
+                            isPro ? 'Thanks for being a Pro member' : 'You\'re on the free plan',
+                            style: const TextStyle(fontSize: 13, color: Color(0xCCFFFFFF)),
                           ),
                           const SizedBox(height: 9),
                           Container(
@@ -162,14 +175,18 @@ class _ProfileViewState extends State<ProfileView> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.workspace_premium, color: Color(0xFFF0B429), size: 12),
-                                SizedBox(width: 5),
+                                Icon(
+                                  isPro ? Icons.workspace_premium : Icons.bolt,
+                                  color: const Color(0xFFF0B429),
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 5),
                                 Text(
-                                  'PRO MEMBER',
-                                  style: TextStyle(
+                                  isPro ? 'PRO MEMBER' : 'FREE PLAN',
+                                  style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.66,
@@ -185,43 +202,51 @@ class _ProfileViewState extends State<ProfileView> {
                   ],
                 ),
               ),
+              if (!isPro) ...[
+                const SizedBox(height: 14),
+                _GetProButton(onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.second_offer)),
+              ],
               const SizedBox(height: 18),
 
               // Stats row
               Row(
                 children: List.generate(stats.length, (i) {
                   final s = stats[i];
+                  final isSavedTile = s.$2 == 'SAVED';
                   return Expanded(
                     child: Padding(
                       padding: EdgeInsets.only(right: i < stats.length - 1 ? 12 : 0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: c.card,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [PromptColors.cardShadow],
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Text(
-                              s.$1,
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: c.ink,
+                      child: GestureDetector(
+                        onTap: isSavedTile ? () => context.go(HistoryView.routeName) : null,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: c.card,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [PromptColors.cardShadow],
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              Text(
+                                s.$1,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: c.ink,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              s.$2,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.44,
-                                color: c.muted,
+                              const SizedBox(height: 3),
+                              Text(
+                                s.$2,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.44,
+                                  color: c.muted,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -229,28 +254,6 @@ class _ProfileViewState extends State<ProfileView> {
                 }),
               ),
               const SizedBox(height: 28),
-
-              // Menu
-              Container(
-                decoration: BoxDecoration(
-                  color: c.card,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [PromptColors.cardShadow],
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: Column(
-                  children: List.generate(_menuItems.length, (i) {
-                    final item = _menuItems[i];
-                    return _ProfileRow(
-                      icon: item.icon,
-                      title: item.label,
-                      c: c,
-                      isFirst: i == 0,
-                      onTap: () {},
-                    );
-                  }),
-                ),
-              ),
 
               if (legalRows.isNotEmpty) ...[
                 const SizedBox(height: 18),
@@ -288,38 +291,14 @@ class _ProfileViewState extends State<ProfileView> {
                 clipBehavior: Clip.hardEdge,
                 child: Column(
                   children: [
-                    _ProfileRow(icon: Icons.star_outline, title: 'Rate the app', c: c, isFirst: true),
+                    _ProfileRow(icon: Icons.star_outline, title: 'Rate the app', c: c, isFirst: true, onTap: _rateApp),
                     _ProfileRow(icon: Icons.info_outline, title: 'App version', trailing: '2.4.0', c: c),
                   ],
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // Log out
-              Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  color: c.card,
-                  border: Border.all(color: const Color(0xFFF0D4D4), width: 1.5),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Log Out',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                      color: Color(0xFFD14343),
-                    ),
-                  ),
                 ),
               ),
             ],
           ),
         );
-      },
-    );
   }
 }
 
@@ -328,6 +307,82 @@ class _ProfileLink {
   final String title;
   final VoidCallback onTap;
   const _ProfileLink(this.icon, this.title, this.onTap);
+}
+
+class _GetProButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _GetProButton({required this.onTap});
+
+  @override
+  State<_GetProButton> createState() => _GetProButtonState();
+}
+
+class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderStateMixin {
+  late final AnimationController _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmer = AnimationController(duration: const Duration(milliseconds: 1800), vsync: this)..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _shimmer,
+        builder: (context, child) {
+          return Container(
+            height: 54,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment(-1 + 2 * _shimmer.value, -1),
+                end: Alignment(1 + 2 * _shimmer.value, 1),
+                colors: const [
+                  Color(0xFF8B3DFF),
+                  Color(0xFFF0B429),
+                  Color(0xFF8B3DFF),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B3DFF).withValues(alpha: 0.45),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Get Pro Version',
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _ProfileSectionLabel extends StatelessWidget {

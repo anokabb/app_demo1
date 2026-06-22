@@ -17,8 +17,6 @@ class HistoryEntryModel {
   final ImagePromptModelTier tier;
   final String outputLanguage;
   final DateTime createdAt;
-  @JsonKey(defaultValue: false)
-  final bool isSaved;
   @JsonKey(includeFromJson: false, includeToJson: false)
   final Uint8List? imageBytes;
 
@@ -29,7 +27,6 @@ class HistoryEntryModel {
     required this.tier,
     required this.outputLanguage,
     required this.createdAt,
-    this.isSaved = false,
     this.imageBytes,
   });
 
@@ -37,7 +34,7 @@ class HistoryEntryModel {
 
   Map<String, dynamic> toJson() => _$HistoryEntryModelToJson(this);
 
-  HistoryEntryModel copyWith({bool? isSaved, Uint8List? imageBytes}) {
+  HistoryEntryModel copyWith({Uint8List? imageBytes}) {
     return HistoryEntryModel(
       id: id,
       prompt: prompt,
@@ -45,7 +42,6 @@ class HistoryEntryModel {
       tier: tier,
       outputLanguage: outputLanguage,
       createdAt: createdAt,
-      isSaved: isSaved ?? this.isSaved,
       imageBytes: imageBytes ?? this.imageBytes,
     );
   }

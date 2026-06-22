@@ -557,35 +557,6 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                               ),
                               Row(
                                 children: [
-                                  if (!state.autoSave)
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: GestureDetector(
-                                        onTap: cubit.saveCurrentToHistory,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: c.field,
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.bookmark_add_outlined, color: c.muted, size: 14),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                'SAVE',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w700,
-                                                  letterSpacing: 0.72,
-                                                  color: c.muted,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
                                   GestureDetector(
                                     onTap: () {
                                       Clipboard.setData(ClipboardData(text: state.generatedPrompt));

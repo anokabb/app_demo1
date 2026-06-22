@@ -191,12 +191,6 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     }
   }
 
-  Future<void> saveCurrentToHistory() async {
-    if (state.generatedPrompt.isEmpty || state.pickedImageBytes == null) return;
-    await _addToHistory(state.generatedPrompt, state.pickedImageBytes!, state.pickedImageMime ?? 'image/jpeg');
-    showTopAlert('Saved to history');
-  }
-
   Future<void> _addToHistory(String prompt, Uint8List bytes, String mimeType) async {
     final id = DateTime.now().microsecondsSinceEpoch.toString();
     final entry = HistoryEntryModel(
@@ -236,12 +230,6 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       persistsData.delete(_imageKey(id));
     }
     final updated = state.history.where((e) => !idSet.contains(e.id)).toList();
-    _persistHistory(updated);
-    emit(state.copyWith(history: updated));
-  }
-
-  void toggleHistorySaved(String id) {
-    final updated = state.history.map((e) => e.id == id ? e.copyWith(isSaved: !e.isSaved) : e).toList();
     _persistHistory(updated);
     emit(state.copyWith(history: updated));
   }

@@ -44,9 +44,6 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
   late final Animation<double> _cardFade;
   late final Animation<double> _actionsFade;
 
-  late final AnimationController _bookmarkPop;
-  late final Animation<double> _bookmarkScale;
-
   bool _copied = false;
 
   @override
@@ -67,18 +64,11 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
     _cardFade = CurvedAnimation(parent: _entrance, curve: const Interval(0.35, 0.85, curve: Curves.easeOut));
     _actionsFade = CurvedAnimation(parent: _entrance, curve: const Interval(0.55, 1, curve: Curves.easeOut));
     _entrance.forward();
-
-    _bookmarkPop = AnimationController(duration: const Duration(milliseconds: 360), vsync: this);
-    _bookmarkScale = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35).chain(CurveTween(curve: Curves.easeOut)), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 60),
-    ]).animate(_bookmarkPop);
   }
 
   @override
   void dispose() {
     _entrance.dispose();
-    _bookmarkPop.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -99,11 +89,6 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
     cubit.deleteHistoryEntry(entry.id);
     showTopAlert('Removed from history');
     if (mounted) context.pop();
-  }
-
-  void _toggleSaved(HistoryEntryModel entry) {
-    cubit.toggleHistorySaved(entry.id);
-    _bookmarkPop.forward(from: 0);
   }
 
   void _copyPrompt(String prompt) {
@@ -135,7 +120,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
       bloc: cubit,
       builder: (context, state) {
         final c = PromptColors(state.darkMode);
-        // Re-resolve against live state so a save/delete elsewhere is reflected
+        // Re-resolve against live state so a delete elsewhere is reflected
         // immediately; fall back to the entry passed via `extra` if it's gone.
         final entry = state.history.firstWhere(
           (e) => e.id == widget.entry.id,
@@ -150,10 +135,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
             children: [
               _DetailHeader(
                 c: c,
-                isSaved: entry.isSaved,
-                bookmarkScale: _bookmarkScale,
                 onBack: () => context.pop(),
-                onToggleSaved: () => _toggleSaved(entry),
               ),
               Expanded(
                 child: CustomScrollView(
@@ -592,17 +574,11 @@ class _PromptGenWordmark extends StatelessWidget {
 
 class _DetailHeader extends StatelessWidget {
   final PromptColors c;
-  final bool isSaved;
-  final Animation<double> bookmarkScale;
   final VoidCallback onBack;
-  final VoidCallback onToggleSaved;
 
   const _DetailHeader({
     required this.c,
-    required this.isSaved,
-    required this.bookmarkScale,
     required this.onBack,
-    required this.onToggleSaved,
   });
 
   @override
@@ -632,18 +608,7 @@ class _DetailHeader extends StatelessWidget {
               children: [
                 _HeaderIconButton(icon: Icons.arrow_back, c: c, onTap: onBack),
                 _PromptGenWordmark(c: c),
-                AnimatedBuilder(
-                  animation: bookmarkScale,
-                  builder: (context, _) => Transform.scale(
-                    scale: bookmarkScale.value,
-                    child: _HeaderIconButton(
-                      icon: isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                      filled: isSaved,
-                      c: c,
-                      onTap: onToggleSaved,
-                    ),
-                  ),
-                ),
+                const SizedBox(width: 40),
               ],
             ),
           ),
@@ -655,11 +620,10 @@ class _DetailHeader extends StatelessWidget {
 
 class _HeaderIconButton extends StatefulWidget {
   final IconData icon;
-  final bool filled;
   final PromptColors c;
   final VoidCallback onTap;
 
-  const _HeaderIconButton({required this.icon, required this.c, required this.onTap, this.filled = false});
+  const _HeaderIconButton({required this.icon, required this.c, required this.onTap});
 
   @override
   State<_HeaderIconButton> createState() => _HeaderIconButtonState();
@@ -684,7 +648,7 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: widget.filled ? const Color(0xFF8B3DFF) : widget.c.iconBox,
+            color: widget.c.iconBox,
             shape: BoxShape.circle,
           ),
           child: AnimatedSwitcher(
@@ -699,7 +663,7 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
             child: Icon(
               widget.icon,
               key: ValueKey(widget.icon),
-              color: widget.filled ? Colors.white : widget.c.accentText,
+              color: widget.c.accentText,
               size: 18,
             ),
           ),

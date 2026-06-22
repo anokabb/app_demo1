@@ -396,7 +396,6 @@ class _HistoryViewState extends State<HistoryView> {
                                       cubit.copyHistory(globalIndex);
                                       showTopAlert('Copied to clipboard');
                                     },
-                                    onToggleSaved: () => cubit.toggleHistorySaved(entry.id),
                                   ),
                                 ),
                               ],
@@ -509,14 +508,12 @@ class _HistoryCard extends StatelessWidget {
   final PromptColors c;
   final bool copied;
   final VoidCallback onCopy;
-  final VoidCallback onToggleSaved;
 
   const _HistoryCard({
     required this.entry,
     required this.c,
     required this.copied,
     required this.onCopy,
-    required this.onToggleSaved,
   });
 
   @override
@@ -605,18 +602,6 @@ class _HistoryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          GestureDetector(
-            onTap: onToggleSaved,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                entry.isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                color: entry.isSaved ? c.accentText : c.muted,
-                size: 19,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
           GestureDetector(
             onTap: onCopy,
             child: Container(

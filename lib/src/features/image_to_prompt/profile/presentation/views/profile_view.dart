@@ -1,3 +1,4 @@
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
@@ -83,11 +84,11 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildBody(BuildContext context, PromptColors c, bool isPro) {
-    final freeLimit = locator<RemoteConfigService>().data.revenueCat.freeLimit;
+    final credits = isPro ? 'Unlimited' : _subscriptionCubit.remainingFreeActions.toString();
     final stats = [
       (cubit.state.history.length.toString(), 'PROMPTS'),
       (cubit.state.history.length.toString(), 'SAVED'),
-      (isPro ? 'Unlimited' : freeLimit.toString(), 'CREDITS'),
+      (credits, 'CREDITS'),
     ];
     final settings = locator<RemoteConfigService>().data.settings;
         final legalRows = <_ProfileLink>[
@@ -204,7 +205,7 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               if (!isPro) ...[
                 const SizedBox(height: 14),
-                _GetProButton(onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.second_offer)),
+                _GetProButton(c: c, onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.second_offer)),
               ],
               const SizedBox(height: 18),
 
@@ -309,77 +310,102 @@ class _ProfileLink {
   const _ProfileLink(this.icon, this.title, this.onTap);
 }
 
+/// A deliberately understated "Get Pro" call-to-action: a dashed outline with
+/// the app's accent (no solid primary fill) that breathes with a slow, smooth
+/// scale pulse and presses in on tap. The gentle motion draws the eye without
+/// the carnival feel of a shimmering gradient.
 class _GetProButton extends StatefulWidget {
   final VoidCallback onTap;
-  const _GetProButton({required this.onTap});
+  final PromptColors c;
+  const _GetProButton({required this.onTap, required this.c});
 
   @override
   State<_GetProButton> createState() => _GetProButtonState();
 }
 
 class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderStateMixin {
-  late final AnimationController _shimmer;
+  late final AnimationController _pulse;
+  late final Animation<double> _scale;
+  bool _pressed = false;
 
   @override
   void initState() {
     super.initState();
-    _shimmer = AnimationController(duration: const Duration(milliseconds: 1800), vsync: this)..repeat();
+    _pulse = AnimationController(duration: const Duration(milliseconds: 1600), vsync: this)..repeat(reverse: true);
+    _scale = Tween<double>(begin: 1.0, end: 1.03).animate(
+      CurvedAnimation(parent: _pulse, curve: Curves.easeInOutSine),
+    );
   }
 
   @override
   void dispose() {
-    _shimmer.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = widget.c;
+    final accent = c.accentText;
     return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTapUp: (_) => setState(() => _pressed = false),
       onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _shimmer,
-        builder: (context, child) {
-          return Container(
-            height: 54,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                begin: Alignment(-1 + 2 * _shimmer.value, -1),
-                end: Alignment(1 + 2 * _shimmer.value, 1),
-                colors: const [
-                  Color(0xFF8B3DFF),
-                  Color(0xFFF0B429),
-                  Color(0xFF8B3DFF),
-                ],
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1,
+        duration: const Duration(milliseconds: 130),
+        curve: Curves.easeOut,
+        child: ScaleTransition(
+          scale: _scale,
+          child: DottedBorder(
+            borderType: BorderType.RRect,
+            radius: const Radius.circular(16),
+            dashPattern: const [7, 5],
+            strokeWidth: 1.6,
+            color: accent.withValues(alpha: 0.6),
+            child: Container(
+              height: 58,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: c.accentSoft,
+                borderRadius: BorderRadius.circular(16),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF8B3DFF).withValues(alpha: 0.45),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: const Center(
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Get Pro Version',
-                    style: TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.2,
-                      color: Colors.white,
-                    ),
+                  Icon(Icons.workspace_premium_rounded, color: accent, size: 21),
+                  const SizedBox(width: 10),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Get Pro Version',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                          color: accent,
+                        ),
+                      ),
+                      Text(
+                        'Unlock unlimited prompts',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: accent.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(width: 10),
+                  Icon(Icons.arrow_forward_rounded, color: accent, size: 18),
                 ],
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

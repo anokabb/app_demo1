@@ -5,6 +5,7 @@ import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/logger/logger.dart';
+import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_url_fetcher.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
@@ -128,6 +129,19 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     String mimeType = state.pickedImageMime ?? 'image/jpeg';
 
     final url = state.imageUrl.trim();
+
+    // Validate there's something to generate from before spending a credit, so
+    // an empty tap never decrements the free-tier allowance.
+    if (url.isEmpty && state.pickedImageBytes == null) {
+      showTopAlert('Upload an image or paste a URL first.', isError: true);
+      return;
+    }
+
+    // Gate on the free-tier limit. Subscribers always pass; free users consume
+    // one credit per generation and get the paywall once they hit the limit.
+    final canGenerate = await locator<SubscriptionCubit>().canUseFreeAction();
+    if (!canGenerate) return;
+
     if (url.isNotEmpty) {
       emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false));
 

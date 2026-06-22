@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cross_file/cross_file.dart';
@@ -591,9 +592,11 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                             ],
                           ),
                           const SizedBox(height: 10),
-                          Text(
-                            state.generatedPrompt,
+                          _StreamingPromptText(
+                            text: state.generatedPrompt,
+                            isStreaming: state.isGenerating,
                             style: TextStyle(fontSize: 15, height: 1.5, color: c.ink),
+                            accent: c.accentText,
                           ),
                         ],
                       ),
@@ -803,6 +806,103 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
           ),
         );
       },
+    );
+  }
+}
+
+/// Reveals the generated prompt with a typewriter effect so the text appears to
+/// be written in real time. On platforms where the SSE response streams in
+/// (mobile) the target [text] grows chunk-by-chunk and the cursor trails just
+/// behind it; where the response is buffered (web) the full text arrives at
+/// once and is still revealed progressively. A blinking caret shows while the
+/// model is still writing; once finished the text becomes selectable so it can
+/// be copied by selection — not just via the Copy button.
+class _StreamingPromptText extends StatefulWidget {
+  final String text;
+  final bool isStreaming;
+  final TextStyle style;
+  final Color accent;
+
+  const _StreamingPromptText({
+    required this.text,
+    required this.isStreaming,
+    required this.style,
+    required this.accent,
+  });
+
+  @override
+  State<_StreamingPromptText> createState() => _StreamingPromptTextState();
+}
+
+class _StreamingPromptTextState extends State<_StreamingPromptText> {
+  int _visible = 0;
+  Timer? _typeTimer;
+  Timer? _blinkTimer;
+  bool _cursorOn = true;
+
+  bool get _active => widget.isStreaming || _visible < widget.text.length;
+
+  @override
+  void initState() {
+    super.initState();
+    // If we're handed a finished prompt (e.g. a rebuild after generation),
+    // show it whole instead of re-animating.
+    _visible = widget.isStreaming ? 0 : widget.text.length;
+    _ensureTyping();
+    _blinkTimer = Timer.periodic(const Duration(milliseconds: 530), (_) {
+      if (mounted && _active) setState(() => _cursorOn = !_cursorOn);
+    });
+  }
+
+  void _ensureTyping() {
+    _typeTimer ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
+      if (_visible >= widget.text.length) {
+        if (!widget.isStreaming) {
+          _typeTimer?.cancel();
+          _typeTimer = null;
+          if (mounted) setState(() {}); // drop the caret, switch to selectable
+        }
+        return;
+      }
+      // Catch up faster when far behind so big chunks don't lag the caret.
+      final remaining = widget.text.length - _visible;
+      final step = remaining > 80 ? 4 : 2;
+      setState(() => _visible = (_visible + step).clamp(0, widget.text.length));
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _StreamingPromptText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A new generation replaces the text with a different/shorter prefix.
+    if (widget.text.length < oldWidget.text.length && !widget.text.startsWith(oldWidget.text)) {
+      _visible = 0;
+    }
+    if (_visible > widget.text.length) _visible = widget.text.length;
+    _ensureTyping();
+  }
+
+  @override
+  void dispose() {
+    _typeTimer?.cancel();
+    _blinkTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_active) {
+      return SelectableText(widget.text, style: widget.style);
+    }
+    final shown = widget.text.substring(0, _visible.clamp(0, widget.text.length));
+    return Text.rich(
+      TextSpan(
+        text: shown,
+        style: widget.style,
+        children: [
+          if (_cursorOn) TextSpan(text: '▌', style: widget.style.copyWith(color: widget.accent)),
+        ],
+      ),
     );
   }
 }

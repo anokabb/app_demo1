@@ -7,7 +7,9 @@ import 'package:flutter_app_template/src/core/components/layouts/default_layout.
 import 'package:flutter_app_template/src/core/constants/env_config.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/extensions/extensions.dart';
+import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/notifications/notification_service.dart';
+import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_colors.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -27,6 +29,9 @@ class _DevModeViewState extends State<DevModeView> {
   Timer? _timer;
 
   bool debugUpgrader = devBox.get('debugUpgrader', defaultValue: false);
+  bool isDevPro = devBox.get('isDevPro', defaultValue: false);
+
+  final _subscriptionCubit = locator<SubscriptionCubit>();
 
   @override
   void initState() {
@@ -141,6 +146,37 @@ class _DevModeViewState extends State<DevModeView> {
                 await devBox.put('debugUpgrader', value);
               },
             ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Subscription',
+            style: context.theme.appTextTheme.body1.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          ListTile(
+            title: const Text('Pro Member (override)'),
+            subtitle: const Text('Force the subscriber state on/off for testing'),
+            contentPadding: EdgeInsets.zero,
+            trailing: Switch(
+              activeTrackColor: Colors.green,
+              inactiveTrackColor: Colors.grey.withValues(alpha: 0.4),
+              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+              thumbColor: WidgetStateProperty.all(Colors.white),
+              value: isDevPro,
+              onChanged: (value) async {
+                setState(() {
+                  isDevPro = value;
+                });
+                await _subscriptionCubit.setDevPro(value);
+              },
+            ),
+          ),
+          AppButton(
+            onPressed: () {
+              _subscriptionCubit.resetFreeUsage();
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Free credits reset')));
+            },
+            label: 'Reset Free Credits',
+            isTextButton: true,
           ),
           SizedBox(height: 16),
         ],

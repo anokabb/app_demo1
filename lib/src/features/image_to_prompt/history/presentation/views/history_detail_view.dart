@@ -263,7 +263,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                       borderRadius: BorderRadius.circular(22),
                                       boxShadow: [PromptColors.cardShadow],
                                     ),
-                                    child: Text(
+                                    child: SelectableText(
                                       entry.prompt,
                                       style: TextStyle(fontSize: 16, height: 1.65, color: c.ink),
                                     ),

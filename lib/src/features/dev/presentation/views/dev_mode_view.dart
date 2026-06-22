@@ -10,8 +10,10 @@ import 'package:flutter_app_template/src/core/extensions/extensions.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/notifications/notification_service.dart';
 import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_colors.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:restart_app/restart_app.dart';
 
@@ -170,13 +172,30 @@ class _DevModeViewState extends State<DevModeView> {
               },
             ),
           ),
-          AppButton(
-            onPressed: () {
-              _subscriptionCubit.resetFreeUsage();
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Free credits reset')));
+          SizedBox(height: 12),
+          BlocBuilder<SubscriptionCubit, SubscriptionState>(
+            bloc: _subscriptionCubit,
+            builder: (context, subState) {
+              final limit = locator<RemoteConfigService>().data.revenueCat.freeLimit;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Free credits used: ${subState.freeLimit} / $limit',
+                    style: context.theme.appTextTheme.body2,
+                  ),
+                  const SizedBox(height: 10),
+                  AppButton(
+                    onPressed: () {
+                      _subscriptionCubit.resetFreeUsage();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Free credits reset')));
+                    },
+                    label: 'Reset Free Credits',
+                    backgroundColor: AppColors.red,
+                  ),
+                ],
+              );
             },
-            label: 'Reset Free Credits',
-            isTextButton: true,
           ),
           SizedBox(height: 16),
         ],

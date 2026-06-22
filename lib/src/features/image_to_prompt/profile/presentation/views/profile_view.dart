@@ -84,7 +84,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildBody(BuildContext context, PromptColors c, bool isPro) {
-    final credits = isPro ? 'Unlimited' : _subscriptionCubit.remainingFreeActions.toString();
+    final credits = isPro ? '∞' : _subscriptionCubit.remainingFreeActions.toString();
     final stats = [
       (cubit.state.history.length.toString(), 'PROMPTS'),
       (cubit.state.history.length.toString(), 'SAVED'),
@@ -204,7 +204,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
               if (!isPro) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 24),
                 _GetProButton(c: c, onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.second_offer)),
               ],
               const SizedBox(height: 18),
@@ -362,20 +362,20 @@ class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderS
             borderType: BorderType.RRect,
             radius: const Radius.circular(16),
             dashPattern: const [7, 5],
-            strokeWidth: 1.6,
+            strokeWidth: 1.5,
             color: accent.withValues(alpha: 0.6),
             child: Container(
-              height: 58,
+              height: 46,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: c.accentSoft,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.workspace_premium_rounded, color: accent, size: 21),
-                  const SizedBox(width: 10),
+                  Icon(Icons.workspace_premium_rounded, color: accent, size: 17),
+                  const SizedBox(width: 8),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +383,7 @@ class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderS
                       Text(
                         'Get Pro Version',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.2,
                           color: accent,
@@ -392,15 +392,15 @@ class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderS
                       Text(
                         'Unlock unlimited prompts',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w500,
                           color: accent.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(width: 10),
-                  Icon(Icons.arrow_forward_rounded, color: accent, size: 18),
+                  const SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_rounded, color: accent, size: 15),
                 ],
               ),
             ),

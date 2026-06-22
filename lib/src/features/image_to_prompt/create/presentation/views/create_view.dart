@@ -558,6 +558,34 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                               ),
                               Row(
                                 children: [
+                                  if (!state.autoSave && !state.resultSaved && !state.isGenerating) ...[
+                                    GestureDetector(
+                                      onTap: cubit.saveCurrentResult,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: c.accentSoft,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.save_outlined, color: c.accentText, size: 14),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'SAVE',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.72,
+                                                color: c.accentText,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
                                   GestureDetector(
                                     onTap: () {
                                       Clipboard.setData(ClipboardData(text: state.generatedPrompt));
@@ -845,9 +873,13 @@ class _StreamingPromptTextState extends State<_StreamingPromptText> {
   @override
   void initState() {
     super.initState();
-    // If we're handed a finished prompt (e.g. a rebuild after generation),
-    // show it whole instead of re-animating.
-    _visible = widget.isStreaming ? 0 : widget.text.length;
+    // This widget only mounts once per generation (the result card is removed
+    // from the tree between generations), so always reveal from scratch here —
+    // even if, by the time this first builds, the network response already
+    // finished (e.g. web buffers the whole SSE body before delivering it),
+    // we still want the typewriter effect to play rather than jumping straight
+    // to the final text.
+    _visible = 0;
     _ensureTyping();
     _blinkTimer = Timer.periodic(const Duration(milliseconds: 530), (_) {
       if (mounted && _active) setState(() => _cursorOn = !_cursorOn);

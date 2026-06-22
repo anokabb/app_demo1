@@ -23,6 +23,7 @@ class ImageToPromptState {
   final String? genError;
   final bool showResult;
   final bool resultCopied;
+  final bool resultSaved;
   final int recentCopied;
   final int histFilter;
   final ImagePromptModelTier? histTier;
@@ -48,6 +49,7 @@ class ImageToPromptState {
     this.genError,
     this.showResult = false,
     this.resultCopied = false,
+    this.resultSaved = false,
     this.recentCopied = -1,
     this.histFilter = 0,
     this.histTier,
@@ -74,6 +76,7 @@ class ImageToPromptState {
     Object? genError = _unspecified,
     bool? showResult,
     bool? resultCopied,
+    bool? resultSaved,
     int? recentCopied,
     int? histFilter,
     Object? histTier = _unspecified,
@@ -103,6 +106,7 @@ class ImageToPromptState {
       genError: genError == _unspecified ? this.genError : (genError is Unset ? null : genError as String?),
       showResult: showResult ?? this.showResult,
       resultCopied: resultCopied ?? this.resultCopied,
+      resultSaved: resultSaved ?? this.resultSaved,
       recentCopied: recentCopied ?? this.recentCopied,
       histFilter: histFilter ?? this.histFilter,
       histTier: histTier == _unspecified ? this.histTier : (histTier is Unset ? null : histTier as ImagePromptModelTier?),

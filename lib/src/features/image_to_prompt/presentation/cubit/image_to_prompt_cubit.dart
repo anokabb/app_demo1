@@ -143,7 +143,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     if (!canGenerate) return;
 
     if (url.isNotEmpty) {
-      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false));
+      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false, resultSaved: false));
 
       final fetched = await ImageUrlFetcher.fetch(url);
       final fetchedData = fetched.fold<(Uint8List, String)?>((_) => null, (data) => data);
@@ -162,7 +162,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
         showTopAlert('Upload an image or paste a URL first.', isError: true);
         return;
       }
-      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false));
+      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false, resultSaved: false));
     }
 
     _log.i('Generating prompt — tier: ${state.selectedModel.name}, smartEnhance: ${state.smartEnhance}');
@@ -202,7 +202,18 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     showTopAlert('Your prompt is ready!');
     if (state.autoSave) {
       await _addToHistory(latestText, capturedBytes, capturedMime);
+      emit(state.copyWith(resultSaved: true));
     }
+  }
+
+  /// Manually saves the current result to history — used when auto-save is
+  /// off and the user taps the Save action on the result card.
+  Future<void> saveCurrentResult() async {
+    final bytes = state.pickedImageBytes;
+    if (bytes == null || state.generatedPrompt.isEmpty) return;
+    await _addToHistory(state.generatedPrompt, bytes, state.pickedImageMime ?? 'image/jpeg');
+    emit(state.copyWith(resultSaved: true));
+    showTopAlert('Saved to history');
   }
 
   Future<void> _addToHistory(String prompt, Uint8List bytes, String mimeType) async {

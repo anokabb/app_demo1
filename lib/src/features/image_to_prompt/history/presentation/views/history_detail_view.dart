@@ -277,7 +277,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                   children: [
                                     _ActionButton(
                                       icon: Icons.auto_awesome_mosaic_outlined,
-                                      label: 'Use Prompt',
+                                      label: 'Use Image',
                                       filled: true,
                                       c: c,
                                       onTap: () => _useEntry(entry),

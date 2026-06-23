@@ -49,5 +49,9 @@
 		<false />
 		<key>ITSAppUsesNonExemptEncryption</key>
 		<false />
+		<key>NSCameraUsageDescription</key>
+		<string>This app uses the camera to take a photo to generate a prompt from.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app uses your photo library to pick an image to generate a prompt from.</string>
 	</dict>
 </plist>

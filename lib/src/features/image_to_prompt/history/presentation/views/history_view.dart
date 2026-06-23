@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
+import 'package:flutter_app_template/src/core/extensions/extensions.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/delete_confirm_sheet.dart';
@@ -546,6 +547,7 @@ class _HistoryCard extends StatelessWidget {
                   style: TextStyle(fontSize: 14, height: 1.4, color: c.ink),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  textDirection: entry.prompt.textDirection,
                 ),
                 const SizedBox(height: 8),
                 Wrap(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
+import 'package:flutter_app_template/src/core/components/widgets/tap_opacity.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 
 const kPromptLanguages = [
@@ -60,10 +61,19 @@ class _LanguagePickerSheet extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final lang = kPromptLanguages[index];
                   final selected = lang == current;
-                  return ListTile(
+                  return TapOpacity(
                     onTap: () => Navigator.of(context).pop(lang),
-                    title: Text(lang, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.ink)),
-                    trailing: selected ? Icon(Icons.check_circle, color: c.accentText) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(lang, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.ink)),
+                          ),
+                          if (selected) Icon(Icons.check_circle, color: c.accentText),
+                        ],
+                      ),
+                    ),
                   );
                 },
               ),

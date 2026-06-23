@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pickers/app_image_picker.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
+import 'package:flutter_app_template/src/core/extensions/extensions.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_view.dart';
@@ -710,6 +711,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                                   style: TextStyle(fontSize: 14, height: 1.4, color: c.ink),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
+                                  textDirection: item.prompt.textDirection,
                                 ),
                                 const SizedBox(height: 8),
                                 Wrap(
@@ -920,7 +922,7 @@ class _StreamingPromptTextState extends State<_StreamingPromptText> {
   @override
   Widget build(BuildContext context) {
     if (!_active) {
-      return SelectableText(widget.text, style: widget.style);
+      return SelectableText(widget.text, style: widget.style, textDirection: widget.text.textDirection);
     }
     final shown = widget.text.substring(0, _visible.clamp(0, widget.text.length));
     return Text.rich(
@@ -931,6 +933,7 @@ class _StreamingPromptTextState extends State<_StreamingPromptText> {
           if (_cursorOn) TextSpan(text: '▌', style: widget.style.copyWith(color: widget.accent)),
         ],
       ),
+      textDirection: widget.text.textDirection,
     );
   }
 }

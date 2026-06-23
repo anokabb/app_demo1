@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
+import 'package:flutter_app_template/src/core/extensions/extensions.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/delete_confirm_sheet.dart';
@@ -266,6 +267,7 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                     child: SelectableText(
                                       entry.prompt,
                                       style: TextStyle(fontSize: 16, height: 1.65, color: c.ink),
+                                      textDirection: entry.prompt.textDirection,
                                     ),
                                   ),
                                 ],

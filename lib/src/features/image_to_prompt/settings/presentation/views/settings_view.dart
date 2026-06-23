@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
+import 'package:flutter_app_template/src/core/components/widgets/tap_opacity.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
@@ -369,7 +370,7 @@ class _SettingsRow extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst) Divider(color: c.line, thickness: 1, height: 1),
-        InkWell(
+        TapOpacity(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),

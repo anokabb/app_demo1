@@ -1,6 +1,7 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/components/widgets/tap_opacity.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/in_app_browser_service.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
@@ -460,7 +461,7 @@ class _ProfileRow extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst) Divider(color: c.line, thickness: 1, height: 1),
-        InkWell(
+        TapOpacity(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
+import 'package:flutter_app_template/src/core/components/widgets/tap_opacity.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 
@@ -38,11 +39,26 @@ class _ModelTierPickerSheet extends StatelessWidget {
             ),
             ...ImagePromptModelTier.values.map((tier) {
               final selected = tier == current;
-              return ListTile(
+              return TapOpacity(
                 onTap: () => Navigator.of(context).pop(tier),
-                title: Text(tier.label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.ink)),
-                subtitle: Text(tier.description, style: TextStyle(fontSize: 12, color: c.muted)),
-                trailing: selected ? Icon(Icons.check_circle, color: c.accentText) : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(tier.label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.ink)),
+                            const SizedBox(height: 2),
+                            Text(tier.description, style: TextStyle(fontSize: 12, color: c.muted)),
+                          ],
+                        ),
+                      ),
+                      if (selected) Icon(Icons.check_circle, color: c.accentText),
+                    ],
+                  ),
+                ),
               );
             }),
             const SizedBox(height: 12),

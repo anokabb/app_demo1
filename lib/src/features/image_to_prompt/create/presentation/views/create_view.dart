@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cross_file/cross_file.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pickers/app_image_picker.dart';
@@ -54,6 +55,9 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
   late final Animation<double> _resultFadeAnimation;
   bool _wasShowingResult = false;
   bool _isDragging = false;
+
+  // desktop_drop has no iOS implementation, so DropTarget never fires there.
+  bool get _isIOS => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
   late int _lastScrollTopTick = cubit.state.scrollToTopTick;
   final _resultKey = GlobalKey();
 
@@ -184,6 +188,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
 
               // Upload zone / preview
               DropTarget(
+                enable: !_isIOS,
                 onDragDone: (detail) => _handleDroppedFiles(detail.files),
                 onDragEntered: (_) => setState(() => _isDragging = true),
                 onDragExited: (_) => setState(() => _isDragging = false),
@@ -318,7 +323,7 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Tap to browse or drag & drop',
+                            _isIOS ? 'Tap to browse' : 'Tap to browse or drag & drop',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,

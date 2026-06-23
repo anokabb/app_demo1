@@ -229,22 +229,9 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 28,
-                                    height: 3,
-                                    decoration: BoxDecoration(
-                                      gradient: PromptColors.accentGradient,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    'GENERATED PROMPT',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.92, color: c.muted),
-                                  ),
-                                ],
+                              Text(
+                                'GENERATED PROMPT',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.92, color: c.muted),
                               ),
                               const SizedBox(height: 14),
                               Stack(

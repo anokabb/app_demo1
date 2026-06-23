@@ -2,6 +2,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
+import 'package:flutter_app_template/src/core/services/in_app_browser_service.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
 import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
@@ -43,10 +44,15 @@ class _ProfileViewState extends State<ProfileView> {
 
   Future<void> _openUrl(String url) async {
     try {
+      // url_launcher's inAppBrowserView presents SFSafariViewController with
+      // .overFullScreen on iOS (looks like a left-to-right push), so iOS goes
+      // through our own channel that presents it as a .pageSheet modal instead.
+      // Android's Chrome Custom Tab already opens as a bottom modal by default.
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        await InAppBrowserService.open(url);
+        return;
+      }
       final uri = Uri.parse(url);
-      // inAppBrowserView presents the native in-app browser (SFSafariViewController
-      // on iOS / Chrome Custom Tab on Android) as a bottom modal, instead of
-      // switching to the external browser app.
       final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       if (!launched) throw Exception('Could not launch $url');
     } catch (e) {
@@ -254,10 +260,9 @@ class _ProfileViewState extends State<ProfileView> {
                   );
                 }),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 8),
 
               if (legalRows.isNotEmpty) ...[
-                const SizedBox(height: 18),
                 _ProfileSectionLabel(label: 'LEGAL & SUPPORT', c: c),
                 Container(
                   decoration: BoxDecoration(

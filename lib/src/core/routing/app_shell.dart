@@ -203,7 +203,7 @@ class _PromptBottomNav extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: Container(
           width: double.infinity,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
           height: 74,
           decoration: BoxDecoration(
             color: c.card,

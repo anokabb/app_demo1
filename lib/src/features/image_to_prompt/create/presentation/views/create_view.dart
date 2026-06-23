@@ -544,80 +544,14 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'GENERATED PROMPT',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.92,
-                                  color: c.muted,
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  if (!state.autoSave && !state.resultSaved && !state.isGenerating) ...[
-                                    GestureDetector(
-                                      onTap: cubit.saveCurrentResult,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: c.accentSoft,
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.save_outlined, color: c.accentText, size: 14),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              'SAVE',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: 0.72,
-                                                color: c.accentText,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  GestureDetector(
-                                    onTap: () {
-                                      Clipboard.setData(ClipboardData(text: state.generatedPrompt));
-                                      cubit.copyResult();
-                                      showTopAlert('Copied to clipboard');
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: c.accentSoft,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.content_copy, color: c.accentText, size: 14),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            state.resultCopied ? 'COPIED' : 'COPY',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: 0.72,
-                                              color: c.accentText,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          Text(
+                            'GENERATED PROMPT',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.92,
+                              color: c.muted,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           _StreamingPromptText(
@@ -625,6 +559,68 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                             isStreaming: state.isGenerating,
                             style: TextStyle(fontSize: 15, height: 1.5, color: c.ink),
                             accent: c.accentText,
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              if (!state.autoSave && !state.resultSaved && !state.isGenerating) ...[
+                                GestureDetector(
+                                  onTap: cubit.saveCurrentResult,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: c.accentSoft,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.save_outlined, color: c.accentText, size: 14),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'SAVE',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.72,
+                                            color: c.accentText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              GestureDetector(
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(text: state.generatedPrompt));
+                                  cubit.copyResult();
+                                  showTopAlert('Copied to clipboard');
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: c.accentSoft,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.content_copy, color: c.accentText, size: 14),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        state.resultCopied ? 'COPIED' : 'COPY',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.72,
+                                          color: c.accentText,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

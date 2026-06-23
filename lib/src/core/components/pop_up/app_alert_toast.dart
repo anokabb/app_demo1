@@ -110,7 +110,7 @@ class _ToastOverlayWidgetState extends State<_ToastOverlayWidget> with SingleTic
       bottom: 0,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
           child: AnimatedBuilder(
             animation: curved,
             builder: (context, child) {

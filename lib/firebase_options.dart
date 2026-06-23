@@ -70,6 +70,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '2304558075',
     projectId: 'appdemo-3d1ab',
     storageBucket: 'appdemo-3d1ab.firebasestorage.app',
-    iosBundleId: 'com.example',
+    iosBundleId: 'demo.app.test',
   );
 }

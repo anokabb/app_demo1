@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
@@ -47,9 +47,17 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
         // Bottom nav is a Positioned overlay, not Scaffold.bottomNavigationBar, so it
         // doesn't get pushed off-screen by the keyboard automatically — hide it manually.
         final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+        // iOS's home-indicator safe-area inset would otherwise stack on top of the
+        // floating nav's own bottom margin, making it sit far closer to the left/right
+        // margins than the bottom one. Android's nav-bar inset is kept as-is.
+        final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
         return Scaffold(
           backgroundColor: c.page,
           body: SafeArea(
+            // The header paints its own gradient behind the status bar and insets its
+            // content manually, so the Stack itself shouldn't reserve top safe area.
+            top: false,
+            bottom: !isIOS,
             child: Stack(
               children: [
                 Column(
@@ -105,8 +113,9 @@ class _PromptHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
+      padding: EdgeInsets.fromLTRB(22, topInset + 20, 22, 16),
       decoration: BoxDecoration(
         gradient: c.dark
             ? LinearGradient(
@@ -194,7 +203,7 @@ class _PromptBottomNav extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: Container(
           width: double.infinity,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           height: 74,
           decoration: BoxDecoration(
             color: c.card,

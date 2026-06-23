@@ -11,7 +11,7 @@ _flutter.buildConfig = {"engineRevision":"cf56914b326edb0ccb123ffdc60f00060bd513
 
 _flutter.loader.load({
   serviceWorkerSettings: {
-    serviceWorkerVersion: "449082231"
+    serviceWorkerVersion: "2569380406"
   },
   config: {
     // Serve CanvasKit from this app's own bundle instead of fetching it from

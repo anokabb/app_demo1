@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
@@ -16,7 +14,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _fullDate(DateTime time) => '${_months[time.month - 1]} ${time.day}, ${time.year}';
@@ -142,170 +151,72 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                 child: CustomScrollView(
                   controller: _scrollController,
                   slivers: [
-                  SliverToBoxAdapter(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: imageBytes != null && imageBytes.isNotEmpty
-                          ? () => _openImagePreview(imageBytes)
-                          : null,
-                      child: ClipRect(
-                        child: Stack(
-                          children: [
-                            AnimatedBuilder(
-                              animation: Listenable.merge([_entrance, _scrollController]),
-                              builder: (context, _) {
-                                final parallax = _scrollController.hasClients ? _scrollController.offset * 0.3 : 0.0;
-                                return Opacity(
-                                  opacity: _heroFade.value,
-                                  child: Transform.translate(
-                                    offset: Offset(0, parallax),
-                                    child: Transform.scale(
-                                      scale: _heroScale.value,
-                                      child: SizedBox(
-                                        height: imageHeight,
-                                        width: double.infinity,
-                                        child: imageBytes != null && imageBytes.isNotEmpty
-                                            ? Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity)
-                                            : Container(
-                                                color: c.field,
-                                                child: Icon(Icons.image_outlined, size: 56, color: c.muted),
-                                              ),
+                    SliverToBoxAdapter(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: imageBytes != null && imageBytes.isNotEmpty ? () => _openImagePreview(imageBytes) : null,
+                        child: ClipRect(
+                          child: Stack(
+                            children: [
+                              AnimatedBuilder(
+                                animation: Listenable.merge([_entrance, _scrollController]),
+                                builder: (context, _) {
+                                  final parallax = _scrollController.hasClients ? _scrollController.offset * 0.3 : 0.0;
+                                  return Opacity(
+                                    opacity: _heroFade.value,
+                                    child: Transform.translate(
+                                      offset: Offset(0, parallax),
+                                      child: Transform.scale(
+                                        scale: _heroScale.value,
+                                        child: SizedBox(
+                                          height: imageHeight,
+                                          width: double.infinity,
+                                          child: imageBytes != null && imageBytes.isNotEmpty
+                                              ? Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity)
+                                              : Container(
+                                                  color: c.field,
+                                                  child: Icon(Icons.image_outlined, size: 56, color: c.muted),
+                                                ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [Colors.black.withValues(alpha: 0), Colors.black.withValues(alpha: 0.75)],
+                                  );
+                                },
+                              ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [Colors.black.withValues(alpha: 0), Colors.black.withValues(alpha: 0.75)],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              left: 18,
-                              right: 18,
-                              bottom: 16,
-                              child: Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  _StaggerPop(
-                                    animation: _pill1,
-                                    child: _Pill(icon: Icons.auto_awesome, label: entry.tier.label, accent: true),
-                                  ),
-                                  _StaggerPop(
-                                    animation: _pill2,
-                                    child: _Pill(icon: Icons.language, label: entry.outputLanguage),
-                                  ),
-                                  _StaggerPop(
-                                    animation: _pill3,
-                                    child: _Pill(icon: Icons.schedule, label: _fullDate(entry.createdAt)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(22, 28, 22, 140),
-                    sliver: SliverToBoxAdapter(
-                      child: SlideTransition(
-                        position: _cardSlide,
-                        child: FadeTransition(
-                          opacity: _cardFade,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 28,
-                                    height: 3,
-                                    decoration: BoxDecoration(
-                                      gradient: PromptColors.accentGradient,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    'GENERATED PROMPT',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.92, color: c.muted),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Positioned(
-                                    top: -14,
-                                    left: -6,
-                                    child: Icon(Icons.format_quote, size: 40, color: c.accentText.withValues(alpha: 0.25)),
-                                  ),
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.fromLTRB(22, 24, 20, 22),
-                                    decoration: BoxDecoration(
-                                      color: c.card,
-                                      border: Border.all(color: c.line, width: 1.5),
-                                      borderRadius: BorderRadius.circular(22),
-                                      boxShadow: [PromptColors.cardShadow],
-                                    ),
-                                    child: SelectableText(
-                                      entry.prompt,
-                                      style: TextStyle(fontSize: 16, height: 1.65, color: c.ink),
-                                      textDirection: entry.prompt.textDirection,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              FadeTransition(
-                                opacity: _actionsFade,
-                                child: Column(
+                              Positioned(
+                                left: 18,
+                                right: 18,
+                                bottom: 16,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
                                   children: [
-                                    _ActionButton(
-                                      icon: Icons.auto_awesome_mosaic_outlined,
-                                      label: 'Use Image',
-                                      filled: true,
-                                      c: c,
-                                      onTap: () => _useEntry(entry),
+                                    _StaggerPop(
+                                      animation: _pill1,
+                                      child: _Pill(icon: Icons.auto_awesome, label: entry.tier.label, accent: true),
                                     ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _ActionButton(
-                                            icon: _copied ? Icons.check_circle : Icons.content_copy,
-                                            label: _copied ? 'Copied!' : 'Copy',
-                                            c: c,
-                                            onTap: () => _copyPrompt(entry.prompt),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: _ActionButton(
-                                            icon: Icons.delete_outline,
-                                            label: 'Delete',
-                                            danger: true,
-                                            c: c,
-                                            onTap: () => _deleteEntry(entry, c),
-                                          ),
-                                        ),
-                                      ],
+                                    _StaggerPop(
+                                      animation: _pill2,
+                                      child: _Pill(icon: Icons.language, label: entry.outputLanguage),
+                                    ),
+                                    _StaggerPop(
+                                      animation: _pill3,
+                                      child: _Pill(icon: Icons.schedule, label: _fullDate(entry.createdAt)),
                                     ),
                                   ],
                                 ),
@@ -315,7 +226,97 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                         ),
                       ),
                     ),
-                  ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(22, 28, 22, 140),
+                      sliver: SliverToBoxAdapter(
+                        child: SlideTransition(
+                          position: _cardSlide,
+                          child: FadeTransition(
+                            opacity: _cardFade,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 3,
+                                      decoration: BoxDecoration(
+                                        gradient: PromptColors.accentGradient,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      'GENERATED PROMPT',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 1.92,
+                                          color: c.muted),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.fromLTRB(22, 24, 20, 22),
+                                  decoration: BoxDecoration(
+                                    color: c.card,
+                                    border: Border.all(color: c.line, width: 1.5),
+                                    borderRadius: BorderRadius.circular(22),
+                                    boxShadow: [PromptColors.cardShadow],
+                                  ),
+                                  child: SelectableText(
+                                    entry.prompt,
+                                    style: TextStyle(fontSize: 16, height: 1.65, color: c.ink),
+                                    textDirection: entry.prompt.textDirection,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                FadeTransition(
+                                  opacity: _actionsFade,
+                                  child: Column(
+                                    children: [
+                                      _ActionButton(
+                                        icon: Icons.auto_awesome_mosaic_outlined,
+                                        label: 'Use Image',
+                                        filled: true,
+                                        c: c,
+                                        onTap: () => _useEntry(entry),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _ActionButton(
+                                              icon: _copied ? Icons.check_circle : Icons.content_copy,
+                                              label: _copied ? 'Copied!' : 'Copy',
+                                              c: c,
+                                              onTap: () => _copyPrompt(entry.prompt),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: _ActionButton(
+                                              icon: Icons.delete_outline,
+                                              label: 'Delete',
+                                              danger: true,
+                                              c: c,
+                                              onTap: () => _deleteEntry(entry, c),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -773,7 +774,9 @@ class _ActionButtonState extends State<_ActionButton> with SingleTickerProviderS
               height: widget.filled ? 58 : 52,
               decoration: BoxDecoration(
                 gradient: widget.filled ? PromptColors.accentGradient : null,
-                color: widget.filled ? null : (widget.danger ? const Color(0xFFD14343).withValues(alpha: 0.07) : widget.c.accentSoft),
+                color: widget.filled
+                    ? null
+                    : (widget.danger ? const Color(0xFFD14343).withValues(alpha: 0.07) : widget.c.accentSoft),
                 border: widget.filled ? null : Border.all(color: borderColor, width: 1.3),
                 borderRadius: BorderRadius.circular(widget.filled ? 18 : 15),
                 boxShadow: widget.filled

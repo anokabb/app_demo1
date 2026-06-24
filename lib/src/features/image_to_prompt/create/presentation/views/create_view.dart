@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:cross_file/cross_file.dart';
-import 'package:desktop_drop/desktop_drop.dart';
+import 'package:collection/collection.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +18,7 @@ import 'package:flutter_app_template/src/features/image_to_prompt/presentation/p
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/language_picker_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 
 String _guessMimeType(String path) {
   final ext = path.split('.').last.toLowerCase();
@@ -34,6 +34,29 @@ String _guessMimeType(String path) {
     default:
       return 'image/jpeg';
   }
+}
+
+// Formats accepted by the upload drop zone, checked in priority order.
+const _droppableImageFormats = [
+  Formats.jpeg,
+  Formats.png,
+  Formats.gif,
+  Formats.webp,
+  Formats.bmp,
+  Formats.tiff,
+  Formats.heic,
+  Formats.heif,
+];
+
+String _extensionForFormat(FileFormat format) {
+  if (format == Formats.png) return 'png';
+  if (format == Formats.gif) return 'gif';
+  if (format == Formats.webp) return 'webp';
+  if (format == Formats.bmp) return 'bmp';
+  if (format == Formats.tiff) return 'tiff';
+  if (format == Formats.heic) return 'heic';
+  if (format == Formats.heif) return 'heif';
+  return 'jpg';
 }
 
 class CreateView extends StatefulWidget {
@@ -109,17 +132,43 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
     _urlController.clear();
   }
 
-  Future<void> _handleDroppedFiles(List<XFile> files) async {
-    if (files.isEmpty) return;
-    final file = files.first;
-    final bytes = await file.readAsBytes();
-    if (bytes.lengthInBytes > ImageUrlFetcher.maxBytes) {
-      if (!mounted) return;
-      showTopAlert('Image is too large (max 8MB).', isError: true);
-      return;
-    }
-    cubit.setPickedImage(bytes, _guessMimeType(file.name));
-    _urlController.clear();
+  DropOperation _onDropOver(DropOverEvent event) {
+    final canDrop = event.session.items.any(
+      (item) => _droppableImageFormats.any(item.canProvide),
+    );
+    return canDrop ? DropOperation.copy : DropOperation.none;
+  }
+
+  Future<void> _onPerformDrop(PerformDropEvent event) async {
+    setState(() => _isDragging = false);
+    final reader = event.session.items.firstOrNull?.dataReader;
+    if (reader == null) return;
+    final format = _droppableImageFormats.firstWhereOrNull(reader.canProvide);
+    if (format == null) return;
+
+    final completer = Completer<void>();
+    reader.getFile(
+      format,
+      (file) async {
+        try {
+          final bytes = await file.readAll();
+          if (bytes.lengthInBytes > ImageUrlFetcher.maxBytes) {
+            if (!mounted) return;
+            showTopAlert('Image is too large (max 8MB).', isError: true);
+            return;
+          }
+          final name = file.fileName ?? 'dropped.${_extensionForFormat(format)}';
+          cubit.setPickedImage(bytes, _guessMimeType(name));
+          _urlController.clear();
+        } finally {
+          if (!completer.isCompleted) completer.complete();
+        }
+      },
+      onError: (_) {
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
+    return completer.future;
   }
 
   Future<void> _pasteLink() async {
@@ -183,10 +232,12 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
               const SizedBox(height: 26),
 
               // Upload zone / preview
-              DropTarget(
-                onDragDone: (detail) => _handleDroppedFiles(detail.files),
-                onDragEntered: (_) => setState(() => _isDragging = true),
-                onDragExited: (_) => setState(() => _isDragging = false),
+              DropRegion(
+                formats: _droppableImageFormats,
+                onDropOver: _onDropOver,
+                onPerformDrop: _onPerformDrop,
+                onDropEnter: (_) => setState(() => _isDragging = true),
+                onDropLeave: (_) => setState(() => _isDragging = false),
                 child: state.isFetchingUrlPreview && state.pickedImageBytes == null
                     ? Container(
                         width: double.infinity,

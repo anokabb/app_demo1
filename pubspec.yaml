@@ -85,17 +85,17 @@ flutter_gen:
 
 # fvm dart run flutter_launcher_icons
 flutter_launcher_icons:
-  android: true
+  android: false
   ios: true
   image_path: "assets/images/app_icon.png"
 
 # fvm dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#ffffff"
+  color: "#141019"
   image: assets/images/app_icon.png
   android_12:
-    color: "#ffffff"
-    image: "assets/images/app_icon_android_12.png"
+    color: "#141019"
+    image: "assets/images/app_icon.png"
   android: true
   ios: true
 

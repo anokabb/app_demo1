@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
-import 'package:flutter_app_template/src/features/onboarding/presentation/views/splash_view.dart';
 import 'package:go_router/go_router.dart';
 
 class _OnboardingPageData {
@@ -31,10 +30,16 @@ const _pages = [
   ),
 ];
 
+const _onboardingKey = 'onboardingCompleted';
+
 class OnboardingView extends StatefulWidget {
   static const String routeName = '/onboarding';
 
   const OnboardingView({super.key});
+
+  static bool isOnboardingCompleted() {
+    return persistsData.get(_onboardingKey) == true;
+  }
 
   @override
   State<OnboardingView> createState() => _OnboardingViewState();
@@ -46,8 +51,12 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   bool get _isLastPage => _index == _pages.length - 1;
 
+  static Future<void> setOnboardingCompleted() async {
+    await persistsData.put(_onboardingKey, true);
+  }
+
   Future<void> _finish() async {
-    await SplashView.setOnboardingCompleted();
+    await setOnboardingCompleted();
     if (!mounted) return;
     context.go(AppRouter.defaultRoute);
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
+import 'package:flutter_app_template/src/core/gen/assets.gen.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/extensions/extensions.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
@@ -559,14 +560,14 @@ class _PromptGenWordmark extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.auto_awesome, color: PromptColors.primary, size: 18),
-        const SizedBox(width: 6),
+        Assets.images.appIconTransparent.image(width: 30, height: 30),
+        const SizedBox(width: 9),
         Text(
           'PromptGen',
           style: TextStyle(
-            fontSize: 15,
+            fontSize: 21,
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+            letterSpacing: -0.42,
             color: c.accentText,
           ),
         ),

@@ -162,7 +162,7 @@ class _PromptLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Assets.images.appIconTransparent.image(width: 26, height: 26),
+        Assets.images.appIconTransparent.image(width: 30, height: 30),
         const SizedBox(width: 9),
         Text(
           'PromptGen',

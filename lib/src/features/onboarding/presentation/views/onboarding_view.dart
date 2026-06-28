@@ -65,6 +65,12 @@ class OnboardingView extends StatefulWidget {
     await persistsData.put(_onboardingKey, true);
   }
 
+  /// Clears the onboarding flag so the landing flow is shown again — e.g. after
+  /// the user deletes all of their data.
+  static Future<void> resetOnboarding() async {
+    await persistsData.delete(_onboardingKey);
+  }
+
   @override
   State<OnboardingView> createState() => _OnboardingViewState();
 }

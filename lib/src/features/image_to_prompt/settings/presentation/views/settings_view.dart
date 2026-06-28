@@ -11,6 +11,7 @@ import 'package:flutter_app_template/src/features/image_to_prompt/presentation/c
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/language_picker_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/model_tier_picker_sheet.dart';
+import 'package:flutter_app_template/src/features/onboarding/presentation/views/onboarding_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -106,7 +107,9 @@ class _SettingsBody extends StatelessWidget {
     );
     if (confirmed == true) {
       cubit.deleteHistoryEntries(state.history.map((e) => e.id));
+      await OnboardingView.resetOnboarding();
       showTopAlert('All your data has been removed');
+      if (context.mounted) context.go(OnboardingView.routeName);
     }
   }
 

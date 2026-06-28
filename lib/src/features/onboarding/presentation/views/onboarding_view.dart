@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/gen/assets.gen.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 /// Design palette (PromptGen onboarding — dark only).
 class _Pg {
@@ -50,6 +52,104 @@ class _Pg {
       );
 }
 
+/// Fades + slides its [child] up after [delay]. Used to stagger entrances.
+class _Reveal extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  final double dy;
+  final Duration duration;
+  const _Reveal({
+    required this.child,
+    this.delay = Duration.zero,
+    this.dy = 26,
+    this.duration = const Duration(milliseconds: 520),
+    super.key,
+  });
+
+  @override
+  State<_Reveal> createState() => _RevealState();
+}
+
+class _RevealState extends State<_Reveal> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: widget.duration);
+  late final Animation<double> _a = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(widget.delay, () {
+      if (mounted) _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _a,
+      builder: (context, child) => Opacity(
+        opacity: _a.value,
+        child: Transform.translate(offset: Offset(0, (1 - _a.value) * widget.dy), child: child),
+      ),
+      child: widget.child,
+    );
+  }
+}
+
+/// Soft, slowly pulsing radial glow used behind the welcome logo.
+class _PulseGlow extends StatefulWidget {
+  final double size;
+  const _PulseGlow({required this.size});
+
+  @override
+  State<_PulseGlow> createState() => _PulseGlowState();
+}
+
+class _PulseGlowState extends State<_PulseGlow> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final t = Curves.easeInOut.transform(_c.value);
+        final scale = 0.9 + t * 0.18;
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  _Pg.violet.withValues(alpha: 0.32 + t * 0.28),
+                  _Pg.purple.withValues(alpha: 0.16),
+                  Colors.transparent,
+                ],
+                stops: const [0, 0.45, 0.7],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class OnboardingView extends StatefulWidget {
   static const String routeName = '/onboarding';
 
@@ -77,26 +177,25 @@ class OnboardingView extends StatefulWidget {
 
 class _OnboardingViewState extends State<OnboardingView> {
   // Top-level stages: 0 = welcome, 1 = carousel, 2 = reviews.
-  final _stagePager = PageController();
+  int _stage = 0;
 
-  @override
-  void dispose() {
-    _stagePager.dispose();
-    super.dispose();
-  }
-
-  void _goStage(int stage) {
-    _stagePager.animateToPage(
-      stage,
-      duration: const Duration(milliseconds: 420),
-      curve: Curves.easeInOutCubic,
-    );
-  }
+  void _goStage(int stage) => setState(() => _stage = stage);
 
   Future<void> _finish() async {
     await OnboardingView.setOnboardingCompleted();
     if (!mounted) return;
     context.go(AppRouter.defaultRoute);
+  }
+
+  Widget _buildStage() {
+    switch (_stage) {
+      case 1:
+        return _CarouselStage(key: const ValueKey('carousel'), onDone: () => _goStage(2));
+      case 2:
+        return _ReviewsStage(key: const ValueKey('reviews'), onContinue: _finish);
+      default:
+        return _WelcomeStage(key: const ValueKey('welcome'), onGetStarted: () => _goStage(1));
+    }
   }
 
   @override
@@ -105,14 +204,16 @@ class _OnboardingViewState extends State<OnboardingView> {
       body: Container(
         decoration: const BoxDecoration(gradient: _Pg.bgGradient),
         child: SafeArea(
-          child: PageView(
-            controller: _stagePager,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              _WelcomeStage(onGetStarted: () => _goStage(1)),
-              _CarouselStage(onDone: () => _goStage(2)),
-              _ReviewsStage(onContinue: _finish),
-            ],
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 480),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, anim) {
+              final slide = Tween<Offset>(begin: const Offset(0.08, 0), end: Offset.zero)
+                  .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+              return FadeTransition(opacity: anim, child: SlideTransition(position: slide, child: child));
+            },
+            child: _buildStage(),
           ),
         ),
       ),
@@ -157,7 +258,7 @@ class _GradientCta extends StatelessWidget {
 
 class _WelcomeStage extends StatelessWidget {
   final VoidCallback onGetStarted;
-  const _WelcomeStage({required this.onGetStarted});
+  const _WelcomeStage({required this.onGetStarted, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -169,50 +270,55 @@ class _WelcomeStage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // logo + glow
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            _Pg.violet.withValues(alpha: 0.55),
-                            _Pg.purple.withValues(alpha: 0.18),
-                            Colors.transparent,
-                          ],
-                          stops: const [0, 0.45, 0.7],
-                        ),
+                // logo + pulsing glow
+                _Reveal(
+                  dy: 0,
+                  duration: const Duration(milliseconds: 700),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const _PulseGlow(size: 240),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.7, end: 1),
+                        duration: const Duration(milliseconds: 760),
+                        curve: Curves.easeOutBack,
+                        builder: (context, s, child) => Transform.scale(scale: s, child: child),
+                        child: Assets.images.appIconTransparent.image(width: 131),
                       ),
-                    ),
-                    Assets.images.appIconTransparent.image(width: 131),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 48),
-                Text(
-                  'Turn any image into the perfect prompt',
-                  textAlign: TextAlign.center,
-                  style: _Pg.font(36, FontWeight.w800, height: 1.12, letterSpacing: -0.7),
+                _Reveal(
+                  delay: const Duration(milliseconds: 160),
+                  child: Text(
+                    'Turn any image into the perfect prompt',
+                    textAlign: TextAlign.center,
+                    style: _Pg.font(36, FontWeight.w800, height: 1.12, letterSpacing: -0.7),
+                  ),
                 ),
                 const SizedBox(height: 18),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  child: Text(
-                    'Upload a visual and get a precise, ready-to-use AI prompt in seconds.',
-                    textAlign: TextAlign.center,
-                    style: _Pg.font(17, FontWeight.w500, color: _Pg.muted, height: 1.55),
+                _Reveal(
+                  delay: const Duration(milliseconds: 280),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 300),
+                    child: Text(
+                      'Upload a visual and get a precise, ready-to-use AI prompt in seconds.',
+                      textAlign: TextAlign.center,
+                      style: _Pg.font(17, FontWeight.w500, color: _Pg.muted, height: 1.55),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(28, 0, 28, 44),
-          child: _GradientCta(label: 'Get Started', onTap: onGetStarted),
+        _Reveal(
+          delay: const Duration(milliseconds: 420),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 0, 28, 44),
+            child: _GradientCta(label: 'Get Started', onTap: onGetStarted),
+          ),
         ),
       ],
     );
@@ -230,7 +336,7 @@ class _CarouselSlide {
 
 class _CarouselStage extends StatefulWidget {
   final VoidCallback onDone;
-  const _CarouselStage({required this.onDone});
+  const _CarouselStage({required this.onDone, super.key});
 
   @override
   State<_CarouselStage> createState() => _CarouselStageState();
@@ -266,14 +372,14 @@ class _CarouselStageState extends State<_CarouselStage> {
 
   void _continue() {
     if (_slide < _slides.length - 1) {
-      _pager.nextPage(duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+      _pager.nextPage(duration: const Duration(milliseconds: 380), curve: Curves.easeOutCubic);
     } else {
       widget.onDone();
     }
   }
 
   void _goSlide(int i) {
-    _pager.animateToPage(i, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+    _pager.animateToPage(i, duration: const Duration(milliseconds: 380), curve: Curves.easeOutCubic);
   }
 
   @override
@@ -288,28 +394,44 @@ class _CarouselStageState extends State<_CarouselStage> {
             onPageChanged: (i) => setState(() => _slide = i),
             itemBuilder: (context, i) {
               final s = _slides[i];
+              // Re-key per slide so each first appearance animates in.
               return Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
-                    child: SizedBox(height: 330, child: _GraphicStage(child: s.graphic)),
+                  _Reveal(
+                    key: ValueKey('g$i'),
+                    dy: 0,
+                    duration: const Duration(milliseconds: 620),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.92, end: 1),
+                      duration: const Duration(milliseconds: 620),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, sc, child) => Transform.scale(scale: sc, child: child),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
+                        child: SizedBox(height: 330, child: _GraphicStage(child: s.graphic)),
+                      ),
+                    ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(36, 36, 36, 0),
-                    child: Column(
-                      children: [
-                        Text(
-                          s.title,
-                          textAlign: TextAlign.center,
-                          style: _Pg.font(30, FontWeight.w800, letterSpacing: -0.6),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          s.subtitle,
-                          textAlign: TextAlign.center,
-                          style: _Pg.font(16, FontWeight.w500, color: _Pg.muted, height: 1.55),
-                        ),
-                      ],
+                  _Reveal(
+                    key: ValueKey('t$i'),
+                    delay: const Duration(milliseconds: 120),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(36, 36, 36, 0),
+                      child: Column(
+                        children: [
+                          Text(
+                            s.title,
+                            textAlign: TextAlign.center,
+                            style: _Pg.font(30, FontWeight.w800, letterSpacing: -0.6),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            s.subtitle,
+                            textAlign: TextAlign.center,
+                            style: _Pg.font(16, FontWeight.w500, color: _Pg.muted, height: 1.55),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -325,7 +447,8 @@ class _CarouselStageState extends State<_CarouselStage> {
             return GestureDetector(
               onTap: () => _goSlide(i),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOut,
                 margin: const EdgeInsets.symmetric(horizontal: 4.5),
                 width: active ? 28 : 8,
                 height: 8,
@@ -560,9 +683,9 @@ class _Review {
   const _Review({required this.name, required this.role, required this.quote, required this.avatar});
 }
 
-class _ReviewsStage extends StatelessWidget {
+class _ReviewsStage extends StatefulWidget {
   final VoidCallback onContinue;
-  const _ReviewsStage({required this.onContinue});
+  const _ReviewsStage({required this.onContinue, super.key});
 
   static const _avatars = <(String, List<Color>)>[
     ('M', [Color(0xFFA855F7), Color(0xFF7C3AED)]),
@@ -595,7 +718,37 @@ class _ReviewsStage extends StatelessWidget {
   ];
 
   @override
+  State<_ReviewsStage> createState() => _ReviewsStageState();
+}
+
+class _ReviewsStageState extends State<_ReviewsStage> {
+  @override
+  void initState() {
+    super.initState();
+    // Landing on the social-proof screen is a natural high-intent moment to ask
+    // for an app store review. Fire once after the entrance animation settles.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(const Duration(milliseconds: 1100));
+      if (!mounted) return;
+      await _requestReview();
+    });
+  }
+
+  Future<void> _requestReview() async {
+    if (kIsWeb) return;
+    try {
+      final review = InAppReview.instance;
+      if (await review.isAvailable()) {
+        await review.requestReview();
+      }
+    } catch (_) {
+      // Review prompt is best-effort; never block onboarding on it.
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final reviews = _ReviewsStage._reviews;
     return Column(
       children: [
         Expanded(
@@ -603,42 +756,54 @@ class _ReviewsStage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 8),
             child: Column(
               children: [
-                Text(
-                  'Loved by creators everywhere',
-                  textAlign: TextAlign.center,
-                  style: _Pg.font(34, FontWeight.w800, height: 1.12, letterSpacing: -0.68),
+                _Reveal(
+                  child: Text(
+                    'Loved by creators everywhere',
+                    textAlign: TextAlign.center,
+                    style: _Pg.font(34, FontWeight.w800, height: 1.12, letterSpacing: -0.68),
+                  ),
                 ),
                 const SizedBox(height: 26),
-                const _AvatarCluster(),
+                const _Reveal(delay: Duration(milliseconds: 130), child: _AvatarCluster()),
                 const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const _Stars(size: 18),
-                    const SizedBox(width: 10),
-                    Text.rich(
-                      TextSpan(
-                        text: '4.9 ',
-                        style: _Pg.font(15, FontWeight.w700),
-                        children: [
-                          TextSpan(text: '· 10k+ users', style: _Pg.font(15, FontWeight.w600, color: _Pg.dim)),
-                        ],
+                _Reveal(
+                  delay: const Duration(milliseconds: 220),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const _Stars(size: 18),
+                      const SizedBox(width: 10),
+                      Text.rich(
+                        TextSpan(
+                          text: '4.9 ',
+                          style: _Pg.font(15, FontWeight.w700),
+                          children: [
+                            TextSpan(text: '· 10k+ users', style: _Pg.font(15, FontWeight.w600, color: _Pg.dim)),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 26),
-                ..._reviews.map((r) => Padding(
+                for (var i = 0; i < reviews.length; i++)
+                  _Reveal(
+                    delay: Duration(milliseconds: 320 + i * 130),
+                    child: Padding(
                       padding: const EdgeInsets.only(bottom: 13),
-                      child: _ReviewCard(review: r),
-                    )),
+                      child: _ReviewCard(review: reviews[i]),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(28, 8, 28, 44),
-          child: _GradientCta(label: 'Continue', onTap: onContinue),
+        _Reveal(
+          delay: const Duration(milliseconds: 720),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 8, 28, 44),
+            child: _GradientCta(label: 'Continue', onTap: widget.onContinue),
+          ),
         ),
       ],
     );

@@ -1,6 +1,6 @@
 {
-    "name": "Image to Prompt",
-    "short_name": "Image to Prompt",
+    "name": "PromptGen",
+    "short_name": "PromptGen",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

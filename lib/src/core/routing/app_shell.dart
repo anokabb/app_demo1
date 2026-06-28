@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/gen/assets.gen.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -161,7 +162,7 @@ class _PromptLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.auto_awesome, color: PromptColors.primary, size: 26),
+        Assets.images.appIconTransparent.image(width: 26, height: 26),
         const SizedBox(width: 9),
         Text(
           'PromptGen',

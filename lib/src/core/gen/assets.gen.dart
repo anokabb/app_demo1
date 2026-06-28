@@ -20,8 +20,11 @@ class $AssetsImagesGen {
   /// File path: assets/images/app_icon_android_12.png
   AssetGenImage get appIconAndroid12 => const AssetGenImage('assets/images/app_icon_android_12.png');
 
+  /// File path: assets/images/app_icon_transparent.png
+  AssetGenImage get appIconTransparent => const AssetGenImage('assets/images/app_icon_transparent.png');
+
   /// List of all assets
-  List<AssetGenImage> get values => [appIcon, appIconAndroid12];
+  List<AssetGenImage> get values => [appIcon, appIconAndroid12, appIconTransparent];
 }
 
 class $AssetsSvgGen {

@@ -59,7 +59,7 @@ class ImageToPromptState {
     this.history = const [],
     this.autoSave = true,
     this.smartEnhance = true,
-    this.darkMode = false,
+    this.darkMode = true,
     this.outputLanguage = 'English',
     this.scrollToTopTab = -1,
     this.scrollToTopTick = 0,

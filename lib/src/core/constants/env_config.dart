@@ -10,7 +10,7 @@ enum ConfigEnvironments { staging }
 enum BackendEnvironment { beta, production }
 
 class EnvConfig {
-  static const String APP_NAME = 'Flutter App';
+  static const String APP_NAME = 'PromptGen';
   static const String _backendEnvironmentKey = 'backend_environment';
 
   static String get baseUrl => dotenv.get('BASE_URL', fallback: '');

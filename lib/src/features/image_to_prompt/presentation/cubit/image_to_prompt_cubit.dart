@@ -28,7 +28,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       history: _loadHistory(),
       autoSave: settingsBox.get('itp_auto_save', defaultValue: true),
       smartEnhance: settingsBox.get('itp_smart_enhance', defaultValue: true),
-      darkMode: settingsBox.get('itp_dark_mode', defaultValue: false),
+      darkMode: settingsBox.get('itp_dark_mode', defaultValue: true),
       outputLanguage: settingsBox.get('itp_output_language', defaultValue: 'English'),
       selectedModel: ImagePromptModelTier.values.firstWhere(
         (t) => t.name == defaultTierName,

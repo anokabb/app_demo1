@@ -1,6 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
@@ -39,6 +40,8 @@ class _DevViewGestureDetectorState extends State<DevViewGestureDetector> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
+        // Dev mode is a debug-only affordance: never expose it in release builds.
+        if (!kDebugMode) return;
         setState(() {
           tapCount++;
           if (tapCount == 5) {

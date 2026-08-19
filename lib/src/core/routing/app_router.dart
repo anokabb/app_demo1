@@ -1,20 +1,18 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_app_template/src/core/routing/app_shell.dart';
-import 'package:flutter_app_template/src/core/routing/guards/auth_guard.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/create_tab.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/history_tab.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/profile_tab.dart';
-import 'package:flutter_app_template/src/core/services/logger/logger.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/forgot_password_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/login_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/otp_verification_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/register_page.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/pages/reset_password_page.dart';
+import 'package:flutter_app_template/src/core/services/purchases/revenue_cat_service.dart';
 import 'package:flutter_app_template/src/features/dev/presentation/views/dev_mode_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/settings/presentation/views/settings_view.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/pages/language_page.dart';
+import 'package:flutter_app_template/src/features/onboarding/presentation/views/onboarding_view.dart';
+import 'package:flutter_app_template/src/features/paywall/presentation/views/paywall_page.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/pages/theme_page.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,16 +22,20 @@ class AppRouter {
   static const String baseRoute = '/';
   static const String defaultRoute = CreateView.routeName;
 
-  final _logger = getLogger('AppRouter');
-
   GoRouter createRouter() {
     return GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: baseRoute,
-      redirect: AuthGuard(_logger).redirect,
+      redirect: (context, state) => state.uri.path == baseRoute
+          ? () {
+              if (OnboardingView.isOnboardingCompleted()) {
+                return AppRouter.defaultRoute;
+              }
+              return OnboardingView.routeName;
+            }()
+          : null,
       routes: [
         _statefulShellRoute(),
-        ..._authenticationRoutes(),
         ..._otherRoutes(),
       ],
     );
@@ -50,52 +52,19 @@ class AppRouter {
     );
   }
 
-  List<GoRoute> _authenticationRoutes() {
-    return [
-      GoRoute(
-        path: LoginPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const LoginPage(),
-        ),
-      ),
-      GoRoute(
-        path: RegisterPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const RegisterPage(),
-        ),
-      ),
-      GoRoute(
-        path: ForgotPasswordPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const ForgotPasswordPage(),
-        ),
-      ),
-      GoRoute(
-        path: OtpVerificationPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: OtpVerificationPage(email: state.extra as String),
-        ),
-      ),
-      GoRoute(
-        path: ResetPasswordPage.routeName,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: ResetPasswordPage(email: state.extra as String),
-        ),
-      ),
-    ];
-  }
-
   List<RouteBase> _otherRoutes() {
     return [
       GoRoute(
-        path: DevModeView.routeName,
-        pageBuilder: (context, state) => CupertinoPage(child: DevModeView()),
+        path: OnboardingView.routeName,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => CupertinoPage(child: const OnboardingView()),
       ),
+      // Dev mode is only routable in debug builds.
+      if (kDebugMode)
+        GoRoute(
+          path: DevModeView.routeName,
+          pageBuilder: (context, state) => CupertinoPage(child: DevModeView()),
+        ),
       GoRoute(
         path: ThemePage.routeName,
         pageBuilder: (context, state) => CupertinoPage(child: ThemePage()),
@@ -108,6 +77,20 @@ class AppRouter {
         path: SettingsView.routeName,
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => const CupertinoPage(child: SettingsView()),
+      ),
+      GoRoute(
+        path: HistoryDetailView.routeName,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            CupertinoPage(child: HistoryDetailView(entry: state.extra as HistoryEntryModel)),
+      ),
+      GoRoute(
+        path: PaywallPage.routeName,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final paywallOffer = state.extra as PaywallOffers? ?? PaywallOffers.first_offer;
+          return CupertinoPage(child: PaywallPage(paywallOffer: paywallOffer));
+        },
       ),
     ];
   }

@@ -8,6 +8,7 @@ import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
@@ -37,15 +38,26 @@ class App extends StatelessWidget {
                 theme: AppTheme.light(
                   AppTheme.getFontFamily(locale?.languageCode ?? DEFAULT_LANGUAGE.name),
                 ),
+                // Without a darkTheme, every Material-provided surface (text
+                // selection handles, the copy/paste toolbar, the TextField
+                // cursor, keyboard brightness) stays light while the app paints
+                // dark.
+                darkTheme: AppTheme.dark(
+                  AppTheme.getFontFamily(locale?.languageCode ?? DEFAULT_LANGUAGE.name),
+                ),
                 themeMode: themeState.themeMode,
                 routerConfig: routerConfig,
                 localizationsDelegates: AppLocalizations.localizationsDelegates,
-                supportedLocales: AppLocalizations.supportedLocales,
-                locale: locale,
+                // Every PromptGen screen is hardcoded English, so advertising a
+                // second locale only flips the layout to RTL on an Arabic device
+                // while leaving the text untranslated. Restrict to English until
+                // the screens actually go through AppLocalizations.
+                supportedLocales: const [Locale('en')],
+                locale: const Locale('en'),
                 builder: (context, child) {
                   Widget upgraderChild = UpgradeAlert(
                     navigatorKey: rootNavigatorKey,
-                    barrierDismissible: !EnvConfig.FORCE_UPDATE,
+                    barrierDismissible: !locator<RemoteConfigService>().isForceUpdate,
                     dialogStyle: UpgradeDialogStyle.cupertino,
                     upgrader: Upgrader(
                       debugDisplayAlways: devBox.get('debugUpgrader', defaultValue: false),
@@ -70,7 +82,7 @@ class App extends StatelessWidget {
                         confirmText: context.localization.updateNow.toUpperCase(),
                         onConfirm: onUpdate,
                         actions: [
-                          if (!EnvConfig.FORCE_UPDATE)
+                          if (!locator<RemoteConfigService>().isForceUpdate)
                             AppButton(
                               label: context.localization.later.toUpperCase(),
                               backgroundColor: context.theme.appColors.secondaryBackground,

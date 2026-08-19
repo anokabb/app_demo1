@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/logger/logger.dart';
+import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_url_fetcher.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
@@ -27,8 +28,7 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       history: _loadHistory(),
       autoSave: settingsBox.get('itp_auto_save', defaultValue: true),
       smartEnhance: settingsBox.get('itp_smart_enhance', defaultValue: true),
-      notifications: settingsBox.get('itp_notifications', defaultValue: true),
-      darkMode: settingsBox.get('itp_dark_mode', defaultValue: false),
+      darkMode: settingsBox.get('itp_dark_mode', defaultValue: true),
       outputLanguage: settingsBox.get('itp_output_language', defaultValue: 'English'),
       selectedModel: ImagePromptModelTier.values.firstWhere(
         (t) => t.name == defaultTierName,
@@ -37,17 +37,42 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     );
   }
 
+  static String _imageKey(String id) => 'itp_image_$id';
+
+  static final _staticLog = getLogger('ImageToPromptCubit');
+
   static List<HistoryEntryModel> _loadHistory() {
     final raw = persistsData.get(_historyKey);
     if (raw is! String || raw.isEmpty) return [];
+
+    List<dynamic> list;
     try {
-      final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-      return list.map(HistoryEntryModel.fromJson).toList();
-    } catch (_) {
+      list = jsonDecode(raw) as List<dynamic>;
+    } catch (e) {
+      _staticLog.e('[ERROR _loadHistory] history blob is not decodable JSON: $e');
       return [];
     }
+
+    // Per-entry decoding: one corrupt record must never wipe the whole history
+    // (the next save would then overwrite the good data on disk).
+    final entries = <HistoryEntryModel>[];
+    for (final item in list) {
+      try {
+        final entry = HistoryEntryModel.fromJson(Map<String, dynamic>.from(item as Map));
+        final bytes = persistsData.get(_imageKey(entry.id));
+        // Missing/!Uint8List blobs are substituted with an empty list rather
+        // than dropped — the UI renders a placeholder via its errorBuilder.
+        entries.add(entry.copyWith(imageBytes: bytes is Uint8List ? bytes : Uint8List(0)));
+      } catch (e) {
+        _staticLog.e('[ERROR _loadHistory] skipping unreadable history entry: $e');
+      }
+    }
+    return entries;
   }
 
+  // Only lightweight metadata goes through jsonEncode here — images live under
+  // their own Hive key (see [_imageKey]) so adding/removing one entry doesn't
+  // re-serialize every other entry's image bytes.
   void _persistHistory(List<HistoryEntryModel> history) {
     persistsData.put(_historyKey, jsonEncode(history.map((e) => e.toJson()).toList()));
   }
@@ -59,20 +84,28 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   void clearPickedImage() {
-    emit(state.copyWith(pickedImageBytes: const Unset(), pickedImageMime: const Unset()));
+    emit(state.copyWith(pickedImageBytes: const Unset(), pickedImageMime: const Unset(), imageUrl: ''));
   }
 
   void setImageUrl(String url) {
-    if (url.trim().isNotEmpty) {
-      emit(state.copyWith(
-        imageUrl: url,
-        pickedImageBytes: const Unset(),
-        pickedImageMime: const Unset(),
-        genError: const Unset(),
-      ));
-    } else {
-      emit(state.copyWith(imageUrl: url, genError: const Unset()));
-    }
+    emit(state.copyWith(imageUrl: url.trim(), genError: const Unset()));
+  }
+
+  /// Called when the user explicitly pastes a URL (as opposed to typing one) —
+  /// fetches it right away so the image shows in the preview immediately,
+  /// instead of waiting until Generate is pressed.
+  Future<void> pasteImageUrl(String url) async {
+    final trimmed = url.trim();
+    emit(state.copyWith(imageUrl: trimmed, genError: const Unset()));
+    if (trimmed.isEmpty) return;
+
+    emit(state.copyWith(isFetchingUrlPreview: true));
+    final fetched = await ImageUrlFetcher.fetch(trimmed);
+    emit(state.copyWith(isFetchingUrlPreview: false));
+    fetched.fold(
+      (_) => showTopAlert("Couldn't load that image URL.", isError: true),
+      (data) => emit(state.copyWith(pickedImageBytes: data.$1, pickedImageMime: data.$2)),
+    );
   }
 
   // ── options ─────────────────────────────────────────────────────────────
@@ -80,6 +113,18 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   void selectModel(ImagePromptModelTier tier) => emit(state.copyWith(selectedModel: tier));
 
   void setHistFilter(int index) => emit(state.copyWith(histFilter: index));
+
+  void requestScrollToTop(int tabIndex) {
+    emit(state.copyWith(scrollToTopTab: tabIndex, scrollToTopTick: state.scrollToTopTick + 1));
+  }
+
+  // Passing null clears the filter; the Unset sentinel forces copyWith to write
+  // null rather than treating the omitted arg as "keep current value".
+  void setHistTier(ImagePromptModelTier? tier) =>
+      emit(state.copyWith(histTier: tier ?? const Unset()));
+
+  void setHistLanguage(String? language) =>
+      emit(state.copyWith(histLanguage: language ?? const Unset()));
 
   void setHistorySearch(String query) => emit(state.copyWith(historySearch: query));
 
@@ -95,24 +140,44 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
   // ── generation ──────────────────────────────────────────────────────────
 
+  /// Single exit point for a failed generation: clears the loading flag, stores
+  /// the reason on the state AND surfaces it to the user. Every failure path in
+  /// [generate] must go through here so a failure is never silent.
+  void _failGeneration(String message) {
+    _log.e('[ERROR generate] $message');
+    emit(state.copyWith(isGenerating: false, genError: message, showResult: false, generatedPrompt: ''));
+    showTopAlert(message, isError: true);
+  }
+
   Future<void> generate() async {
-    Uint8List? bytes = state.pickedImageBytes;
+    Uint8List? bytes;
     String mimeType = state.pickedImageMime ?? 'image/jpeg';
 
-    if (bytes == null) {
-      final url = state.imageUrl.trim();
-      if (url.isEmpty) {
-        showTopAlert('Upload an image or paste a URL first.', isError: true);
-        return;
-      }
+    final url = state.imageUrl.trim();
 
-      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false));
+    // Validate there's something to generate from before spending a credit, so
+    // an empty tap never decrements the free-tier allowance.
+    if (url.isEmpty && state.pickedImageBytes == null) {
+      showTopAlert('Upload an image or paste a URL first.', isError: true);
+      return;
+    }
+
+    // Permission check only — a limit-reached user gets the paywall here and no
+    // request is started. The credit itself is consumed *after* a successful,
+    // non-empty result (see the end of this method), so a failed generation
+    // (503, network drop, blocked response…) never costs the user anything.
+    final subscriptions = locator<SubscriptionCubit>();
+    final canGenerate = await subscriptions.canUseFreeAction();
+    if (!canGenerate) return;
+
+    if (url.isNotEmpty) {
+      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false, resultSaved: false));
 
       final fetched = await ImageUrlFetcher.fetch(url);
       final fetchedData = fetched.fold<(Uint8List, String)?>((_) => null, (data) => data);
       if (fetchedData == null) {
-        emit(state.copyWith(isGenerating: false));
-        showTopAlert("Couldn't load that image URL.", isError: true);
+        final reason = fetched.fold<String>((error) => error.message, (_) => '');
+        _failGeneration("Couldn't load that image URL. $reason".trim());
         return;
       }
 
@@ -120,56 +185,96 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       mimeType = fetchedData.$2;
       emit(state.copyWith(pickedImageBytes: bytes, pickedImageMime: mimeType));
     } else {
-      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false));
+      bytes = state.pickedImageBytes;
+      if (bytes == null) {
+        showTopAlert('Upload an image or paste a URL first.', isError: true);
+        return;
+      }
+      emit(state.copyWith(isGenerating: true, genError: const Unset(), showResult: false, resultSaved: false));
     }
 
     _log.i('Generating prompt — tier: ${state.selectedModel.name}, smartEnhance: ${state.smartEnhance}');
 
-    final result = await _repo.generatePrompt(
-      imageBytes: bytes,
-      mimeType: mimeType,
-      tier: state.selectedModel,
-      smartEnhance: state.smartEnhance,
-      outputLanguage: state.outputLanguage,
-    );
-
     final capturedBytes = bytes;
     final capturedMime = mimeType;
 
-    await result.fold(
-      (error) async {
-        _log.e('[ERROR generate] ${error.message}');
-        emit(state.copyWith(isGenerating: false, genError: error.message));
-        showTopAlert(error.message, isError: true);
-      },
-      (prompt) async {
-        emit(state.copyWith(isGenerating: false, showResult: true, generatedPrompt: prompt));
-        if (state.notifications) showTopAlert('Your prompt is ready!');
-        if (state.autoSave) {
-          await _addToHistory(prompt, capturedBytes, capturedMime);
-        }
-      },
-    );
+    String latestText = '';
+    String? errorMessage;
+
+    try {
+      await _repo
+          .generatePromptStream(
+        imageBytes: bytes,
+        mimeType: mimeType,
+        tier: state.selectedModel,
+        smartEnhance: state.smartEnhance,
+        outputLanguage: state.outputLanguage,
+      )
+          .forEach((event) {
+        event.fold(
+          (error) => errorMessage = error.message,
+          (text) {
+            latestText = text;
+            emit(state.copyWith(showResult: true, generatedPrompt: text));
+          },
+        );
+      });
+    } catch (e) {
+      // Belt and braces: the repo already converts failures into a left(), but
+      // an escaping stream error must not leave the UI spinning forever.
+      _failGeneration('Generation failed: $e');
+      return;
+    }
+
+    if (errorMessage != null) {
+      _failGeneration(errorMessage!);
+      return;
+    }
+
+    if (latestText.trim().isEmpty) {
+      _failGeneration('The model returned an empty prompt. Please try again.');
+      return;
+    }
+
+    // Success — only now does the generation cost a free-tier credit.
+    await subscriptions.consumeFreeAction();
+
+    emit(state.copyWith(isGenerating: false));
+    showTopAlert('Your prompt is ready!');
+    if (state.autoSave) {
+      await _addToHistory(latestText, capturedBytes, capturedMime);
+      emit(state.copyWith(resultSaved: true));
+    }
   }
 
-  Future<void> saveCurrentToHistory() async {
-    if (state.generatedPrompt.isEmpty || state.pickedImageBytes == null) return;
-    await _addToHistory(state.generatedPrompt, state.pickedImageBytes!, state.pickedImageMime ?? 'image/jpeg');
+  /// Manually saves the current result to history — used when auto-save is
+  /// off and the user taps the Save action on the result card.
+  Future<void> saveCurrentResult() async {
+    final bytes = state.pickedImageBytes;
+    if (bytes == null || state.generatedPrompt.isEmpty) return;
+    await _addToHistory(state.generatedPrompt, bytes, state.pickedImageMime ?? 'image/jpeg');
+    emit(state.copyWith(resultSaved: true));
     showTopAlert('Saved to history');
   }
 
   Future<void> _addToHistory(String prompt, Uint8List bytes, String mimeType) async {
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
     final entry = HistoryEntryModel(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: id,
       prompt: prompt,
-      imageBase64: base64Encode(bytes),
       mimeType: mimeType,
       tier: state.selectedModel,
       outputLanguage: state.outputLanguage,
       createdAt: DateTime.now(),
+      imageBytes: bytes,
     );
+    persistsData.put(_imageKey(id), bytes);
+
     final updated = [entry, ...state.history];
     if (updated.length > _maxHistoryEntries) {
+      for (final dropped in updated.sublist(_maxHistoryEntries)) {
+        persistsData.delete(_imageKey(dropped.id));
+      }
       updated.removeRange(_maxHistoryEntries, updated.length);
     }
     _persistHistory(updated);
@@ -177,13 +282,20 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
   }
 
   void deleteHistoryEntry(String id) {
+    HapticFeedback.mediumImpact();
+    persistsData.delete(_imageKey(id));
     final updated = state.history.where((e) => e.id != id).toList();
     _persistHistory(updated);
     emit(state.copyWith(history: updated));
   }
 
-  void toggleHistorySaved(String id) {
-    final updated = state.history.map((e) => e.id == id ? e.copyWith(isSaved: !e.isSaved) : e).toList();
+  void deleteHistoryEntries(Iterable<String> ids) {
+    HapticFeedback.mediumImpact();
+    final idSet = ids.toSet();
+    for (final id in idSet) {
+      persistsData.delete(_imageKey(id));
+    }
+    final updated = state.history.where((e) => !idSet.contains(e.id)).toList();
     _persistHistory(updated);
     emit(state.copyWith(history: updated));
   }
@@ -200,10 +312,11 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     emit(state.copyWith(
       pickedImageBytes: entry.imageBytes,
       pickedImageMime: entry.mimeType,
-      generatedPrompt: entry.prompt,
-      showResult: true,
       imageUrl: '',
+      showResult: false,
+      generatedPrompt: '',
     ));
+    requestScrollToTop(0);
   }
 
   // ── copy feedback flags ─────────────────────────────────────────────────
@@ -241,12 +354,6 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     final value = !state.smartEnhance;
     emit(state.copyWith(smartEnhance: value));
     settingsBox.put('itp_smart_enhance', value);
-  }
-
-  void toggleNotifications() {
-    final value = !state.notifications;
-    emit(state.copyWith(notifications: value));
-    settingsBox.put('itp_notifications', value);
   }
 
   void toggleDarkMode() {

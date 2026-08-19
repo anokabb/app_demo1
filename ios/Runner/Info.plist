@@ -5,9 +5,9 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>Flutter App</string>
+		<string>PromptGen</string>
 		<key>CFBundleName</key>
-		<string>project_name_here</string>
+		<string>PromptGen</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -47,5 +47,11 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
+		<key>NSCameraUsageDescription</key>
+		<string>This app uses the camera to take a photo to generate a prompt from.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app uses your photo library to pick an image to generate a prompt from.</string>
 	</dict>
 </plist>

@@ -6,15 +6,14 @@ import 'package:flutter_app_template/src/core/components/layouts/buttons/app_but
 import 'package:flutter_app_template/src/core/components/layouts/default_layout.dart';
 import 'package:flutter_app_template/src/core/constants/env_config.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
-import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/extensions/extensions.dart';
-import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/notifications/notification_service.dart';
+import 'package:flutter_app_template/src/core/services/purchases/subscription_cubit.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_colors.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
-import 'package:flutter_app_template/src/features/auth/presentation/cubit/auth_cubit.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:restart_app/restart_app.dart';
 
@@ -32,25 +31,27 @@ class _DevModeViewState extends State<DevModeView> {
   Timer? _timer;
 
   bool debugUpgrader = devBox.get('debugUpgrader', defaultValue: false);
+  bool isDevPro = devBox.get('isDevPro', defaultValue: false);
+
+  final _subscriptionCubit = locator<SubscriptionCubit>();
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      fcm.getToken().then(
-            (value) => setState(() {
-              fcmToken = value;
-            }),
-          );
+      // Simulators have no APNS token, so getToken() throws there.
+      fcm.getToken().then((value) {
+        if (mounted) setState(() => fcmToken = value);
+      }).catchError((_) {});
     });
   }
 
   @override
   void dispose() {
-    super.dispose();
     _timer?.cancel();
     _timeToExpire.dispose();
+    super.dispose();
   }
 
   String getDetails(PackageInfo info) {
@@ -69,20 +70,6 @@ class _DevModeViewState extends State<DevModeView> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          AppButton(
-            isAsync: true,
-            onPressed: () async {
-              await locator<AuthCubit>().logout();
-              context.go(AppRouter.baseRoute);
-            },
-            icon: Icon(
-              Icons.logout,
-              color: context.theme.appColors.textColor,
-            ),
-            label: context.localization.logout,
-            isOutlined: true,
-          ),
-          SizedBox(height: 8),
           AppButton(
             onPressed: () => throw Exception(),
             label: 'Throw Test Exception',
@@ -139,8 +126,6 @@ class _DevModeViewState extends State<DevModeView> {
               onChanged: (e) async {
                 if (e == null) return;
                 await devBox.put('env', e);
-
-                await locator<AuthCubit>().logout();
                 Restart.restartApp();
               },
             ),
@@ -162,6 +147,54 @@ class _DevModeViewState extends State<DevModeView> {
                 await devBox.put('debugUpgrader', value);
               },
             ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Subscription',
+            style: context.theme.appTextTheme.body1.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          ListTile(
+            title: const Text('Pro Member (override)'),
+            subtitle: const Text('Force the subscriber state on/off for testing'),
+            contentPadding: EdgeInsets.zero,
+            trailing: Switch(
+              activeTrackColor: Colors.green,
+              inactiveTrackColor: Colors.grey.withValues(alpha: 0.4),
+              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+              thumbColor: WidgetStateProperty.all(Colors.white),
+              value: isDevPro,
+              onChanged: (value) async {
+                setState(() {
+                  isDevPro = value;
+                });
+                await _subscriptionCubit.setDevPro(value);
+              },
+            ),
+          ),
+          SizedBox(height: 12),
+          BlocBuilder<SubscriptionCubit, SubscriptionState>(
+            bloc: _subscriptionCubit,
+            builder: (context, subState) {
+              final limit = locator<RemoteConfigService>().data.revenueCat.freeLimit;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Free credits used: ${subState.freeLimit} / $limit',
+                    style: context.theme.appTextTheme.body2,
+                  ),
+                  const SizedBox(height: 10),
+                  AppButton(
+                    onPressed: () {
+                      _subscriptionCubit.resetFreeUsage();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Free credits reset')));
+                    },
+                    label: 'Reset Free Credits',
+                    backgroundColor: AppColors.red,
+                  ),
+                ],
+              );
+            },
           ),
           SizedBox(height: 16),
         ],

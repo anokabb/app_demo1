@@ -18,15 +18,13 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     interceptors: [LoggerInterceptor()],
   )..options.connectTimeout = const Duration(seconds: 30)
-    // gemini-2.5-pro (the "detailed" tier) reasons before answering, so it can
-    // take noticeably longer to start streaming than flash/flash-lite.
     ..options.receiveTimeout = const Duration(seconds: 90);
 
-  static const _modelIds = {
-    ImagePromptModelTier.fast: 'gemini-2.5-flash-lite',
-    ImagePromptModelTier.balanced: 'gemini-2.5-flash',
-    ImagePromptModelTier.detailed: 'gemini-2.5-pro',
-  };
+  // All tiers use the same (widely available) model. The Fast/Balanced/Detailed
+  // tier only changes how the generated prompt should look — its depth and
+  // length — not which model runs. gemini-2.5-pro was intentionally dropped
+  // here because it is no longer available to new API users.
+  static const _modelId = 'gemini-2.5-flash';
 
   @override
   Stream<Either<AppError, String>> generatePromptStream({
@@ -44,16 +42,15 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
       return;
     }
 
-    final modelId = _modelIds[tier]!;
-    final isDetailed = tier == ImagePromptModelTier.detailed;
     final instruction = _buildInstruction(
+      tier: tier,
       smartEnhance: smartEnhance,
       outputLanguage: outputLanguage,
     );
 
     try {
       final response = await _dio.post<ResponseBody>(
-        '/models/$modelId:streamGenerateContent',
+        '/models/$_modelId:streamGenerateContent',
         queryParameters: {'key': apiKey, 'alt': 'sse'},
         data: {
           'contents': [
@@ -72,15 +69,11 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
           ],
           'generationConfig': {
             'temperature': 0.55,
-            // Gemini 2.5 models spend output tokens on internal "thinking", so
-            // the budget has to cover both the reasoning and the visible prompt.
-            // gemini-2.5-pro thinks the most and cannot disable it, hence the
-            // larger ceiling for the detailed tier.
-            'maxOutputTokens': isDetailed ? 2048 : (smartEnhance ? 1024 : 512),
-            // Turn thinking off for the fast/balanced tiers (they don't need it
-            // for a short caption); pro requires a non-zero budget so give it a
-            // bounded one that still leaves room for the actual answer.
-            'thinkingConfig': {'thinkingBudget': isDetailed ? 1024 : 0},
+            // Give the more detailed tiers a larger output ceiling so the longer
+            // prompt has room to finish. Thinking stays off for every tier — the
+            // depth difference comes from the instruction, not internal reasoning.
+            'maxOutputTokens': _maxOutputTokens(tier),
+            'thinkingConfig': {'thinkingBudget': 0},
           },
         },
         // Let non-2xx responses through instead of throwing — when the body is
@@ -161,7 +154,35 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
     return 'Gemini request failed (HTTP $status).';
   }
 
+  /// Output-token ceiling per tier — larger tiers produce longer prompts and
+  /// need more room to finish. Same model for all; only the budget differs.
+  int _maxOutputTokens(ImagePromptModelTier tier) {
+    switch (tier) {
+      case ImagePromptModelTier.fast:
+        return 512;
+      case ImagePromptModelTier.balanced:
+        return 1024;
+      case ImagePromptModelTier.detailed:
+        return 2048;
+    }
+  }
+
+  /// The tier controls how the generated prompt should *look* — its depth and
+  /// length — while smartEnhance layers on extra vividness. Same model runs for
+  /// every tier.
+  String _tierStyle(ImagePromptModelTier tier) {
+    switch (tier) {
+      case ImagePromptModelTier.fast:
+        return ' Keep the prompt concise and literal, around 20-30 words, focusing only on the essential visual elements.';
+      case ImagePromptModelTier.balanced:
+        return ' Write a balanced, moderately detailed prompt, around 45-65 words, covering the main subject and key stylistic details.';
+      case ImagePromptModelTier.detailed:
+        return ' Write a comprehensive, richly detailed prompt, around 90-130 words, thoroughly describing every notable aspect of the image.';
+    }
+  }
+
   String _buildInstruction({
+    required ImagePromptModelTier tier,
     required bool smartEnhance,
     required String outputLanguage,
   }) {
@@ -172,9 +193,11 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
       'Respond with ONLY the prompt text as a single paragraph — no preamble, no quotation marks, no markdown, no labels.',
     );
 
-    buffer.write(smartEnhance
-        ? ' Make the prompt vivid, richly detailed and evocative, around 60-90 words.'
-        : ' Keep the prompt concise and literal, around 25-40 words, focusing on the essential visual elements only.');
+    buffer.write(_tierStyle(tier));
+
+    if (smartEnhance) {
+      buffer.write(' Use vivid, evocative language and creative flourishes to make the prompt especially compelling.');
+    }
 
     buffer.write(' Write the prompt in $outputLanguage.');
 

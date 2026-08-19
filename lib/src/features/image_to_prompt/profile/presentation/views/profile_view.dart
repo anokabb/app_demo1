@@ -156,219 +156,218 @@ class _ProfileViewState extends State<ProfileView> {
       (credits, 'CREDITS'),
     ];
     final settings = locator<RemoteConfigService>().data.settings;
-        final legalRows = <_ProfileLink>[
-          if (settings.privacyPolicyUrl.isNotEmpty)
-            _ProfileLink(Icons.privacy_tip_outlined, 'Privacy Policy', () => _openUrl(settings.privacyPolicyUrl)),
-          if (settings.termsOfServiceUrl.isNotEmpty)
-            _ProfileLink(Icons.description_outlined, 'Terms of Service', () => _openUrl(settings.termsOfServiceUrl)),
-          if (settings.aboutUrl.isNotEmpty)
-            _ProfileLink(Icons.info_outline, 'About', () => _openUrl(settings.aboutUrl)),
-          if (settings.helpAndSupportUrl.isNotEmpty)
-            _ProfileLink(Icons.help_outline, 'Help & Support', () => _openUrl(settings.helpAndSupportUrl)),
-          if (settings.contactUsEmail.isNotEmpty)
-            _ProfileLink(Icons.mail_outline, 'Contact Us', () => _openEmail(settings.contactUsEmail)),
-        ];
-        return Scaffold(
-          backgroundColor: c.page,
-          body: ListView(
-            controller: _scrollController,
-            padding: const EdgeInsets.fromLTRB(22, 8, 22, 130),
-            children: [
-              Text(
-                'Profile',
-                style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.33,
-                  height: 1.04,
-                  color: c.ink,
-                ),
-              ),
-              const SizedBox(height: 22),
+    final legalRows = <_ProfileLink>[
+      if (settings.privacyPolicyUrl.isNotEmpty)
+        _ProfileLink(Icons.privacy_tip_outlined, 'Privacy Policy', () => _openUrl(settings.privacyPolicyUrl)),
+      if (settings.termsOfServiceUrl.isNotEmpty)
+        _ProfileLink(Icons.description_outlined, 'Terms of Service', () => _openUrl(settings.termsOfServiceUrl)),
+      if (settings.aboutUrl.isNotEmpty) _ProfileLink(Icons.info_outline, 'About', () => _openUrl(settings.aboutUrl)),
+      if (settings.helpAndSupportUrl.isNotEmpty)
+        _ProfileLink(Icons.help_outline, 'Help & Support', () => _openUrl(settings.helpAndSupportUrl)),
+      if (settings.contactUsEmail.isNotEmpty)
+        _ProfileLink(Icons.mail_outline, 'Contact Us', () => _openEmail(settings.contactUsEmail)),
+    ];
+    return Scaffold(
+      backgroundColor: c.page,
+      body: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(22, 8, 22, 130),
+        children: [
+          Text(
+            'Profile',
+            style: TextStyle(
+              fontSize: 38,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.33,
+              height: 1.04,
+              color: c.ink,
+            ),
+          ),
+          const SizedBox(height: 22),
 
-              // Profile card
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: PromptColors.accentGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6C28D9).withValues(alpha: 0.55),
-                      blurRadius: 40,
-                      offset: const Offset(0, 20),
-                    ),
-                  ],
+          // Profile card
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: PromptColors.accentGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6C28D9).withValues(alpha: 0.55),
+                  blurRadius: 40,
+                  offset: const Offset(0, 20),
                 ),
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 70,
-                      height: 70,
+              ],
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.22),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
+                  ),
+                  child: Icon(
+                    isPro ? Icons.workspace_premium_rounded : Icons.person_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Hi there 👋',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isPro ? 'Thanks for being a Pro member' : 'You\'re on the free plan',
+                        style: const TextStyle(fontSize: 13, color: Color(0xCCFFFFFF)),
+                      ),
+                      const SizedBox(height: 9),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isPro ? Icons.workspace_premium : Icons.bolt,
+                              color: const Color(0xFFF0B429),
+                              size: 12,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              isPro ? 'PRO MEMBER' : 'FREE PLAN',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.66,
+                                color: Color(0xFF5B16E0),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isPro) ...[
+            const SizedBox(height: 24),
+            _GetProButton(c: c, onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.third_offer)),
+          ],
+          const SizedBox(height: 18),
+
+          // Stats row
+          Row(
+            children: List.generate(stats.length, (i) {
+              final s = stats[i];
+              final isSavedTile = s.$2 == 'SAVED';
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: i < stats.length - 1 ? 12 : 0),
+                  child: GestureDetector(
+                    onTap: isSavedTile ? () => context.go(HistoryView.routeName) : null,
+                    child: Container(
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.22),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
+                        color: c.card,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [PromptColors.cardShadow],
                       ),
-                      child: Icon(
-                        isPro ? Icons.workspace_premium_rounded : Icons.person_rounded,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
+                      padding: const EdgeInsets.all(16),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Hi there 👋',
+                          Text(
+                            s.$1,
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 24,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: c.ink,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            isPro ? 'Thanks for being a Pro member' : 'You\'re on the free plan',
-                            style: const TextStyle(fontSize: 13, color: Color(0xCCFFFFFF)),
-                          ),
-                          const SizedBox(height: 9),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isPro ? Icons.workspace_premium : Icons.bolt,
-                                  color: const Color(0xFFF0B429),
-                                  size: 12,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  isPro ? 'PRO MEMBER' : 'FREE PLAN',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.66,
-                                    color: Color(0xFF5B16E0),
-                                  ),
-                                ),
-                              ],
+                            s.$2,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.44,
+                              color: c.muted,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              if (!isPro) ...[
-                const SizedBox(height: 24),
-                _GetProButton(c: c, onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.first_offer)),
-              ],
-              const SizedBox(height: 18),
+              );
+            }),
+          ),
+          const SizedBox(height: 8),
 
-              // Stats row
-              Row(
-                children: List.generate(stats.length, (i) {
-                  final s = stats[i];
-                  final isSavedTile = s.$2 == 'SAVED';
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: i < stats.length - 1 ? 12 : 0),
-                      child: GestureDetector(
-                        onTap: isSavedTile ? () => context.go(HistoryView.routeName) : null,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: c.card,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [PromptColors.cardShadow],
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text(
-                                s.$1,
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                  color: c.ink,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                s.$2,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.44,
-                                  color: c.muted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+          if (isPro) ...[
+            _ProfileSectionLabel(label: 'SUBSCRIPTION', c: c),
+            _SubscriptionCard(c: c, details: _subscriptionDetails(customerInfo)),
+          ],
+
+          if (legalRows.isNotEmpty) ...[
+            _ProfileSectionLabel(label: 'LEGAL & SUPPORT', c: c),
+            Container(
+              decoration: BoxDecoration(
+                color: c.card,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [PromptColors.cardShadow],
+              ),
+              clipBehavior: Clip.hardEdge,
+              child: Column(
+                children: List.generate(legalRows.length, (i) {
+                  final row = legalRows[i];
+                  return _ProfileRow(
+                    icon: row.icon,
+                    title: row.title,
+                    c: c,
+                    isFirst: i == 0,
+                    onTap: row.onTap,
                   );
                 }),
               ),
-              const SizedBox(height: 8),
+            ),
+          ],
 
-              if (isPro) ...[
-                _ProfileSectionLabel(label: 'SUBSCRIPTION', c: c),
-                _SubscriptionCard(c: c, details: _subscriptionDetails(customerInfo)),
+          const SizedBox(height: 18),
+          _ProfileSectionLabel(label: 'ABOUT', c: c),
+          Container(
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [PromptColors.cardShadow],
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: Column(
+              children: [
+                _ProfileRow(icon: Icons.star_outline, title: 'Rate the app', c: c, isFirst: true, onTap: _rateApp),
+                _ProfileRow(icon: Icons.info_outline, title: 'App version', trailing: _appVersion, c: c),
               ],
-
-              if (legalRows.isNotEmpty) ...[
-                _ProfileSectionLabel(label: 'LEGAL & SUPPORT', c: c),
-                Container(
-                  decoration: BoxDecoration(
-                    color: c.card,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [PromptColors.cardShadow],
-                  ),
-                  clipBehavior: Clip.hardEdge,
-                  child: Column(
-                    children: List.generate(legalRows.length, (i) {
-                      final row = legalRows[i];
-                      return _ProfileRow(
-                        icon: row.icon,
-                        title: row.title,
-                        c: c,
-                        isFirst: i == 0,
-                        onTap: row.onTap,
-                      );
-                    }),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 18),
-              _ProfileSectionLabel(label: 'ABOUT', c: c),
-              Container(
-                decoration: BoxDecoration(
-                  color: c.card,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [PromptColors.cardShadow],
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: Column(
-                  children: [
-                    _ProfileRow(icon: Icons.star_outline, title: 'Rate the app', c: c, isFirst: true, onTap: _rateApp),
-                    _ProfileRow(icon: Icons.info_outline, title: 'App version', trailing: _appVersion, c: c),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        );
+        ],
+      ),
+    );
   }
 }
 

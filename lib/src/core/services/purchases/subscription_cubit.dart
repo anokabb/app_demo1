@@ -180,11 +180,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> with WidgetsBindingObse
       await showPaywall(PaywallOffers.first_offer);
       purchasesBox.put('is_first_app_open', false);
     } else {
-      // Returning users also get `first_offer`. `second_offer` is the
-      // "One Time Offer / you won't see this offer again" template — showing it
-      // on every app open makes that copy false and is an App Store risk. It
-      // stays reserved for the one-shot discount follow-up in [showPaywall].
-      await showPaywall(PaywallOffers.first_offer);
+      await showPaywall(PaywallOffers.second_offer);
     }
   }
 
@@ -222,7 +218,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> with WidgetsBindingObse
     final limit = _remoteConfigService.data.revenueCat.freeLimit;
 
     if (currentUsage >= limit) {
-      showPaywall(PaywallOffers.first_offer);
+      showPaywall(PaywallOffers.second_offer);
       return false; // Limit reached
     }
 

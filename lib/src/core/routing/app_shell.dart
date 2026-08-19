@@ -32,11 +32,14 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
   }
 
   void _onTabTap(int index) {
-    cubit.requestScrollToTop(index);
+    // goBranch first: the scroll-to-top tick has to be emitted *after* the
+    // target branch is active, otherwise the listener on the destination tab
+    // never observes the tick change.
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
     );
+    cubit.requestScrollToTop(index);
   }
 
   @override
@@ -67,24 +70,14 @@ class _ImageToPromptShellState extends State<ImageToPromptShell> {
                       c: c,
                       onSettings: () => context.push(SettingsView.routeName),
                     ),
-                    Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 280),
-                        switchInCurve: Curves.easeOut,
-                        switchOutCurve: Curves.easeIn,
-                        transitionBuilder: (child, animation) => FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(animation),
-                            child: child,
-                          ),
-                        ),
-                        child: KeyedSubtree(
-                          key: ValueKey(widget.navigationShell.currentIndex),
-                          child: widget.navigationShell,
-                        ),
-                      ),
-                    ),
+                    // `StatefulNavigationShell` carries a GlobalKey owned by go_router.
+                    // Wrapping it in an AnimatedSwitcher keeps the outgoing child
+                    // mounted during the cross-fade, so two widgets end up sharing
+                    // that one GlobalKey ("Duplicate GlobalKey detected in widget
+                    // tree") and every branch loses its state on each tab switch.
+                    // The shell must therefore be rendered directly, with no
+                    // keyed/animated wrapper around it.
+                    Expanded(child: widget.navigationShell),
                   ],
                 ),
                 if (!keyboardVisible)
@@ -138,8 +131,8 @@ class _PromptHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _PromptLogo(c: c),
-          const Spacer(),
+          Expanded(child: _PromptLogo(c: c)),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: onSettings,
             child: Container(
@@ -164,13 +157,17 @@ class _PromptLogo extends StatelessWidget {
       children: [
         Assets.images.appIconTransparent.image(width: 30, height: 30),
         const SizedBox(width: 9),
-        Text(
-          'PromptGen',
-          style: TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.42,
-            color: c.accentText,
+        Flexible(
+          child: Text(
+            'PromptGen',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.42,
+              color: c.accentText,
+            ),
           ),
         ),
       ],
@@ -179,6 +176,9 @@ class _PromptLogo extends StatelessWidget {
 }
 
 class _PromptBottomNav extends StatelessWidget {
+  static const _navBarHeight = 74.0;
+  static const _createOverhang = 20.0;
+
   final int currentIndex;
   final PromptColors c;
   final ValueChanged<int> onTap;
@@ -191,94 +191,109 @@ class _PromptBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 104,
+      height: 124,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [c.page.withValues(alpha: 0), c.page],
-          stops: const [0.0, 0.38],
+          stops: const [0.0, 0.45],
         ),
       ),
       child: Align(
         alignment: Alignment.bottomCenter,
+        // The CREATE button is raised 20px above the nav bar card. It has to
+        // live inside its parent's bounds — hit testing rejects anything outside
+        // them — so this box is the card's height plus that overhang, and the
+        // card itself is pinned to the bottom of it.
         child: Container(
           width: double.infinity,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-          height: 74,
-          decoration: BoxDecoration(
-            color: c.card,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF3C1E78).withValues(alpha: 0.25),
-                blurRadius: 40,
-                offset: const Offset(0, 16),
-              ),
-            ],
-          ),
+          height: _navBarHeight + _createOverhang,
           child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 38),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _PromptNavItem(
-                      icon: Icons.history,
-                      label: 'HISTORY',
-                      isActive: currentIndex == 1,
-                      c: c,
-                      onTap: () => onTap(1),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: _navBarHeight,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: c.card,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF3C1E78).withValues(alpha: 0.25),
+                        blurRadius: 40,
+                        offset: const Offset(0, 16),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 38),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _PromptNavItem(
+                          icon: Icons.history,
+                          label: 'HISTORY',
+                          isActive: currentIndex == 1,
+                          c: c,
+                          onTap: () => onTap(1),
+                        ),
+                        const SizedBox(width: 58),
+                        _PromptNavItem(
+                          icon: Icons.person_outline,
+                          label: 'PROFILE',
+                          isActive: currentIndex == 2,
+                          c: c,
+                          onTap: () => onTap(2),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 58),
-                    _PromptNavItem(
-                      icon: Icons.person_outline,
-                      label: 'PROFILE',
-                      isActive: currentIndex == 2,
-                      c: c,
-                      onTap: () => onTap(2),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               Positioned(
-                top: -20,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () => onTap(0),
-                      child: Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: PromptColors.accentGradient,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF6C28D9).withValues(alpha: 0.65),
-                              blurRadius: 26,
-                              offset: const Offset(0, 14),
-                            ),
-                          ],
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onTap(0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: PromptColors.accentGradient,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6C28D9).withValues(alpha: 0.65),
+                                blurRadius: 26,
+                                offset: const Offset(0, 14),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.add, color: Colors.white, size: 26),
                         ),
-                        child: const Icon(Icons.add, color: Colors.white, size: 26),
-                      ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'CREATE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                            color: currentIndex == 0 ? c.accentText : PromptColors.idle,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'CREATE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                        color: currentIndex == 0 ? c.accentText : PromptColors.idle,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],

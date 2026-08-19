@@ -18,10 +18,13 @@ class RevenueCatService {
   CustomerInfo? _customerInfo;
   CustomerInfo? get customerInfo => _customerInfo;
 
-  // Check if user has premium access
+  // Check if user has premium access.
+  // Uses entitlements (not activeSubscriptions) so lifetime/non-consumable
+  // purchases, promotional grants and grace periods all count as premium.
   bool get hasPremiumAccess {
-    if (_customerInfo == null) return false;
-    return _customerInfo!.activeSubscriptions.isNotEmpty;
+    final info = _customerInfo;
+    if (info == null) return false;
+    return info.entitlements.active.isNotEmpty;
   }
 
   /// Initialize RevenueCat with API key
@@ -40,6 +43,11 @@ class RevenueCatService {
       await Purchases.configure(configuration);
       _isInitialized = true;
 
+      // Keep the cached customer info fresh: RevenueCat pushes an update on
+      // every purchase, renewal, restore or entitlement change, so we never sit
+      // on a stale (silently downgraded) snapshot.
+      Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+
       // Load customer info
       _customerInfo = await Purchases.getCustomerInfo();
 
@@ -47,6 +55,24 @@ class RevenueCatService {
     } catch (e, stackTrace) {
       _logger.e('Failed to initialize RevenueCat: $e', error: e, stackTrace: stackTrace);
       rethrow;
+    }
+  }
+
+  void _onCustomerInfoUpdated(CustomerInfo customerInfo) {
+    _customerInfo = customerInfo;
+    _logger.i('CustomerInfo updated — premium: ${customerInfo.entitlements.active.isNotEmpty}');
+  }
+
+  /// Force-refresh the cached customer info (e.g. on app resume). Never throws:
+  /// a failed refresh keeps the last known good value rather than downgrading.
+  Future<CustomerInfo?> refreshCustomerInfo() async {
+    if (!_isInitialized) return _customerInfo;
+    try {
+      _customerInfo = await Purchases.getCustomerInfo();
+      return _customerInfo;
+    } catch (e) {
+      _logger.e('Failed to refresh customer info: $e');
+      return _customerInfo;
     }
   }
 
@@ -74,7 +100,9 @@ class RevenueCatService {
 
   Future<void> presentPaywallIfNeeded(PaywallOffers paywallOffer) async {
     try {
-      Offerings offerings = await Purchases.getOfferings();
+      // getOfferings can hang indefinitely on a bad connection — bound it so the
+      // caller fails fast instead of leaving the user on a spinner.
+      Offerings offerings = await Purchases.getOfferings().timeout(const Duration(seconds: 15));
 
       Offering? offering = offerings.all[paywallOffer.name];
       log('Offering: $offering');

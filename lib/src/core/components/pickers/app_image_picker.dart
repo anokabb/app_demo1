@@ -78,8 +78,23 @@ class AppImagePicker extends StatefulWidget {
     );
   }
 
+  /// Longest edge a picked image is downscaled to before it ever reaches memory.
+  /// Full-resolution camera shots (12MP+) are pure waste here: the bytes are
+  /// held in a non-lazy Hive box (so every history image stays resident in RAM)
+  /// and are base64-encoded into the model request.
+  static const _maxDimension = 1536.0;
+
+  /// JPEG re-encode quality — visually lossless for prompt generation while
+  /// cutting the payload by roughly an order of magnitude.
+  static const _imageQuality = 85;
+
   static Future<XFile?> _pickImage(ImageSource source) async {
-    return ImagePicker().pickImage(source: source);
+    return ImagePicker().pickImage(
+      source: source,
+      maxWidth: _maxDimension,
+      maxHeight: _maxDimension,
+      imageQuality: _imageQuality,
+    );
   }
 }
 

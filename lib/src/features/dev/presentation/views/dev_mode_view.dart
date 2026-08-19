@@ -40,19 +40,18 @@ class _DevModeViewState extends State<DevModeView> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      fcm.getToken().then(
-            (value) => setState(() {
-              fcmToken = value;
-            }),
-          );
+      // Simulators have no APNS token, so getToken() throws there.
+      fcm.getToken().then((value) {
+        if (mounted) setState(() => fcmToken = value);
+      }).catchError((_) {});
     });
   }
 
   @override
   void dispose() {
-    super.dispose();
     _timer?.cancel();
     _timeToExpire.dispose();
+    super.dispose();
   }
 
   String getDetails(PackageInfo info) {

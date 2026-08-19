@@ -143,8 +143,45 @@ class GeminiImagePromptRepo implements ImagePromptRepo {
       }
     } catch (e) {
       _log.e('[ERROR generatePromptStream] ${e.toString()}');
-      yield left(AppError.fromException(e));
+      yield left(_mapException(e));
     }
+  }
+
+  /// Turns a transport-level failure into a message that actually describes what
+  /// happened. [AppError.fromException] collapses every Dio failure mode into
+  /// generic text (and reports timeouts for things that never timed out), which
+  /// is what made a Gemini 503 surface as "the request timed out".
+  AppError _mapException(Object e) {
+    if (e is DioException) {
+      final status = e.response?.statusCode;
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+          return const AppError.server(message: "Couldn't reach the AI service. Check your connection and try again.");
+        case DioExceptionType.sendTimeout:
+          return const AppError.server(message: 'Uploading the image took too long. Try a smaller image.');
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.transformTimeout:
+          return const AppError.server(message: 'The model took too long to respond. Please try again.');
+        case DioExceptionType.connectionError:
+          return const AppError.server(message: 'No internet connection. Please reconnect and try again.');
+        case DioExceptionType.cancel:
+          return const AppError.server(message: 'The request was cancelled.');
+        case DioExceptionType.badCertificate:
+          return const AppError.server(message: 'A secure connection to the AI service could not be established.');
+        case DioExceptionType.badResponse:
+        case DioExceptionType.unknown:
+          if (status != null) {
+            return AppError.server(
+              message: status >= 500
+                  ? 'The AI service is temporarily unavailable (HTTP $status). Please try again in a moment.'
+                  : 'Gemini request failed (HTTP $status).',
+              statusCode: status,
+            );
+          }
+          return AppError.server(message: 'Generation failed: ${e.message ?? e.type.name}');
+      }
+    }
+    return AppError.server(message: 'Generation failed: $e');
   }
 
   /// Pulls the human-readable message out of a Gemini error body, e.g.

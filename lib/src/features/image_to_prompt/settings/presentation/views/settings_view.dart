@@ -14,6 +14,7 @@ import 'package:flutter_app_template/src/features/image_to_prompt/presentation/w
 import 'package:flutter_app_template/src/features/onboarding/presentation/views/onboarding_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsView extends StatelessWidget {
   static const routeName = '/image-to-prompt/settings';
@@ -222,9 +223,15 @@ class _SettingsBody extends StatelessWidget {
         DevViewGestureDetector(
           safeArea: false,
           child: Center(
-            child: Text(
-              'PromptGen v2.4.0',
-              style: TextStyle(fontSize: 12, color: c.muted.withValues(alpha: 0.7)),
+            child: FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final version = snapshot.data?.version;
+                return Text(
+                  version == null ? 'PromptGen' : 'PromptGen v$version',
+                  style: TextStyle(fontSize: 12, color: c.muted.withValues(alpha: 0.7)),
+                );
+              },
             ),
           ),
         ),
@@ -393,7 +400,18 @@ class _SettingsRow extends StatelessWidget {
                   child: Text(title,
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: titleColor ?? c.ink)),
                 ),
-                Text(trailing, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.muted)),
+                // Constrained so a long value ('Chinese (Simplified)') can't
+                // squeeze the title down to nothing on a narrow screen.
+                if (trailing.isNotEmpty)
+                  Flexible(
+                    child: Text(
+                      trailing,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.muted),
+                    ),
+                  ),
                 const SizedBox(width: 6),
                 Icon(Icons.chevron_right, color: c.line, size: 17),
               ],

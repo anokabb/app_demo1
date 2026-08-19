@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
@@ -100,6 +98,9 @@ class _HistoryViewState extends State<HistoryView> {
     if (confirmed != true) return;
     cubit.deleteHistoryEntries(_selectedIds);
     showTopAlert('Removed $count item${count == 1 ? '' : 's'}');
+    // The sheet is awaited, so this screen may be gone by now — _exitSelectionMode
+    // calls setState.
+    if (!mounted) return;
     _exitSelectionMode();
   }
 
@@ -116,6 +117,13 @@ class _HistoryViewState extends State<HistoryView> {
       builder: (context, state) {
         final c = PromptColors(state.darkMode);
         final groups = state.groupedHistory;
+        // `filteredHistory` is a getter that re-filters the whole list on every
+        // access — hoist it out of the item builder so lookups aren't O(n²) per
+        // build (this rebuilds on every streaming chunk).
+        final filtered = state.filteredHistory;
+        final indexById = <String, int>{
+          for (var i = 0; i < filtered.length; i++) filtered[i].id: i,
+        };
 
         return Scaffold(
           backgroundColor: c.page,
@@ -150,7 +158,10 @@ class _HistoryViewState extends State<HistoryView> {
                       ],
                     ),
                   ),
-                  if (groups.isNotEmpty)
+                  // Always reachable while selecting: gating this on a non-empty
+                  // list stranded the user in selection mode as soon as a search
+                  // returned no matches.
+                  if (groups.isNotEmpty || _selectionMode)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
                       child: GestureDetector(
@@ -281,9 +292,12 @@ class _HistoryViewState extends State<HistoryView> {
               ),
               const SizedBox(height: 18),
 
-              // Filter chips
-              Row(
-                children: List.generate(_filters.length, (i) {
+              // Filter chips — scrollable so the row can't overflow at large
+              // Dynamic Type settings.
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(_filters.length, (i) {
                   final selected = state.histFilter == i;
                   return Padding(
                     padding: EdgeInsets.only(right: i < _filters.length - 1 ? 10 : 0),
@@ -309,7 +323,8 @@ class _HistoryViewState extends State<HistoryView> {
                       ),
                     ),
                   );
-                }),
+                  }),
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -344,7 +359,7 @@ class _HistoryViewState extends State<HistoryView> {
                       ),
                     ),
                     ...group.items.map((entry) {
-                      final globalIndex = state.filteredHistory.indexOf(entry);
+                      final globalIndex = indexById[entry.id] ?? -1;
                       final selected = _selectedIds.contains(entry.id);
                       return Padding(
                         key: ValueKey(entry.id),
@@ -504,6 +519,24 @@ class _BulkDeleteBar extends StatelessWidget {
   }
 }
 
+/// Stands in for an image that can't be decoded — an entry can hold an empty
+/// byte list when its Hive blob is missing, and decoding that throws
+/// "Invalid image data" on every rebuild.
+class _BrokenImagePlaceholder extends StatelessWidget {
+  final PromptColors c;
+  const _BrokenImagePlaceholder({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64,
+      height: 64,
+      color: c.field,
+      child: Icon(Icons.image_not_supported_outlined, color: c.muted, size: 22),
+    );
+  }
+}
+
 class _HistoryCard extends StatelessWidget {
   final HistoryEntryModel entry;
   final PromptColors c;
@@ -530,12 +563,15 @@ class _HistoryCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.memory(
-              entry.imageBytes ?? Uint8List(0),
-              width: 64,
-              height: 64,
-              fit: BoxFit.cover,
-            ),
+            child: (entry.imageBytes == null || entry.imageBytes!.isEmpty)
+                ? _BrokenImagePlaceholder(c: c)
+                : Image.memory(
+                    entry.imageBytes!,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, _, __) => _BrokenImagePlaceholder(c: c),
+                  ),
           ),
           const SizedBox(width: 14),
           Expanded(

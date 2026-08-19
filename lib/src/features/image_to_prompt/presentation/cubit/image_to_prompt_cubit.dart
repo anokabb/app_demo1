@@ -39,19 +39,35 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
   static String _imageKey(String id) => 'itp_image_$id';
 
+  static final _staticLog = getLogger('ImageToPromptCubit');
+
   static List<HistoryEntryModel> _loadHistory() {
     final raw = persistsData.get(_historyKey);
     if (raw is! String || raw.isEmpty) return [];
+
+    List<dynamic> list;
     try {
-      final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-      return list.map((json) {
-        final entry = HistoryEntryModel.fromJson(json);
-        final bytes = persistsData.get(_imageKey(entry.id));
-        return entry.copyWith(imageBytes: bytes is Uint8List ? bytes : Uint8List(0));
-      }).toList();
-    } catch (_) {
+      list = jsonDecode(raw) as List<dynamic>;
+    } catch (e) {
+      _staticLog.e('[ERROR _loadHistory] history blob is not decodable JSON: $e');
       return [];
     }
+
+    // Per-entry decoding: one corrupt record must never wipe the whole history
+    // (the next save would then overwrite the good data on disk).
+    final entries = <HistoryEntryModel>[];
+    for (final item in list) {
+      try {
+        final entry = HistoryEntryModel.fromJson(Map<String, dynamic>.from(item as Map));
+        final bytes = persistsData.get(_imageKey(entry.id));
+        // Missing/!Uint8List blobs are substituted with an empty list rather
+        // than dropped — the UI renders a placeholder via its errorBuilder.
+        entries.add(entry.copyWith(imageBytes: bytes is Uint8List ? bytes : Uint8List(0)));
+      } catch (e) {
+        _staticLog.e('[ERROR _loadHistory] skipping unreadable history entry: $e');
+      }
+    }
+    return entries;
   }
 
   // Only lightweight metadata goes through jsonEncode here — images live under
@@ -124,6 +140,15 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
   // ── generation ──────────────────────────────────────────────────────────
 
+  /// Single exit point for a failed generation: clears the loading flag, stores
+  /// the reason on the state AND surfaces it to the user. Every failure path in
+  /// [generate] must go through here so a failure is never silent.
+  void _failGeneration(String message) {
+    _log.e('[ERROR generate] $message');
+    emit(state.copyWith(isGenerating: false, genError: message, showResult: false, generatedPrompt: ''));
+    showTopAlert(message, isError: true);
+  }
+
   Future<void> generate() async {
     Uint8List? bytes;
     String mimeType = state.pickedImageMime ?? 'image/jpeg';
@@ -137,9 +162,12 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       return;
     }
 
-    // Gate on the free-tier limit. Subscribers always pass; free users consume
-    // one credit per generation and get the paywall once they hit the limit.
-    final canGenerate = await locator<SubscriptionCubit>().canUseFreeAction();
+    // Permission check only — a limit-reached user gets the paywall here and no
+    // request is started. The credit itself is consumed *after* a successful,
+    // non-empty result (see the end of this method), so a failed generation
+    // (503, network drop, blocked response…) never costs the user anything.
+    final subscriptions = locator<SubscriptionCubit>();
+    final canGenerate = await subscriptions.canUseFreeAction();
     if (!canGenerate) return;
 
     if (url.isNotEmpty) {
@@ -148,8 +176,8 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
       final fetched = await ImageUrlFetcher.fetch(url);
       final fetchedData = fetched.fold<(Uint8List, String)?>((_) => null, (data) => data);
       if (fetchedData == null) {
-        emit(state.copyWith(isGenerating: false));
-        showTopAlert("Couldn't load that image URL.", isError: true);
+        final reason = fetched.fold<String>((error) => error.message, (_) => '');
+        _failGeneration("Couldn't load that image URL. $reason".trim());
         return;
       }
 
@@ -173,30 +201,43 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
     String latestText = '';
     String? errorMessage;
 
-    await _repo
-        .generatePromptStream(
-      imageBytes: bytes,
-      mimeType: mimeType,
-      tier: state.selectedModel,
-      smartEnhance: state.smartEnhance,
-      outputLanguage: state.outputLanguage,
-    )
-        .forEach((event) {
-      event.fold(
-        (error) => errorMessage = error.message,
-        (text) {
-          latestText = text;
-          emit(state.copyWith(showResult: true, generatedPrompt: text));
-        },
-      );
-    });
-
-    if (errorMessage != null) {
-      _log.e('[ERROR generate] $errorMessage');
-      emit(state.copyWith(isGenerating: false, genError: errorMessage, showResult: false, generatedPrompt: ''));
-      showTopAlert(errorMessage!, isError: true);
+    try {
+      await _repo
+          .generatePromptStream(
+        imageBytes: bytes,
+        mimeType: mimeType,
+        tier: state.selectedModel,
+        smartEnhance: state.smartEnhance,
+        outputLanguage: state.outputLanguage,
+      )
+          .forEach((event) {
+        event.fold(
+          (error) => errorMessage = error.message,
+          (text) {
+            latestText = text;
+            emit(state.copyWith(showResult: true, generatedPrompt: text));
+          },
+        );
+      });
+    } catch (e) {
+      // Belt and braces: the repo already converts failures into a left(), but
+      // an escaping stream error must not leave the UI spinning forever.
+      _failGeneration('Generation failed: $e');
       return;
     }
+
+    if (errorMessage != null) {
+      _failGeneration(errorMessage!);
+      return;
+    }
+
+    if (latestText.trim().isEmpty) {
+      _failGeneration('The model returned an empty prompt. Please try again.');
+      return;
+    }
+
+    // Success — only now does the generation cost a free-tier credit.
+    await subscriptions.consumeFreeAction();
 
     emit(state.copyWith(isGenerating: false));
     showTopAlert('Your prompt is ready!');

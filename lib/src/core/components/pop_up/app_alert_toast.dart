@@ -104,18 +104,21 @@ class _ToastOverlayWidgetState extends State<_ToastOverlayWidget> with SingleTic
   @override
   Widget build(BuildContext context) {
     final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    // Anchored to the top: bottom-anchored, this sat at the same height as the
+    // floating bottom tab bar (which the shell paints as a Positioned overlay)
+    // and completely covered HISTORY / CREATE / PROFILE for its whole lifetime.
     return Positioned(
       left: 0,
       right: 0,
-      bottom: 0,
+      top: 0,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
           child: AnimatedBuilder(
             animation: curved,
             builder: (context, child) {
               return Transform.translate(
-                offset: Offset(0, 30 * (1 - curved.value)),
+                offset: Offset(0, -30 * (1 - curved.value)),
                 child: Opacity(opacity: curved.value.clamp(0.0, 1.0), child: child),
               );
             },
@@ -132,7 +135,7 @@ class _ToastOverlayWidgetState extends State<_ToastOverlayWidget> with SingleTic
 
 OverlayEntry? _activeToastEntry;
 
-/// Shows the unified bottom-sliding alert/error toast.
+/// Shows the unified top-sliding alert/error toast.
 void showAppAlert(String message, {bool isError = false}) {
   isError ? HapticFeedback.heavyImpact() : HapticFeedback.lightImpact();
 

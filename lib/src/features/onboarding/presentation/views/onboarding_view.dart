@@ -1,11 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/core/gen/assets.gen.dart';
 import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:in_app_review/in_app_review.dart';
 
 /// Design palette (PromptGen onboarding — dark only).
 class _Pg {
@@ -181,6 +179,14 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   void _goStage(int stage) => setState(() => _stage = stage);
 
+  /// Stages live in memory rather than on the navigator, so Android back / the
+  /// iOS back swipe would otherwise close the app mid-onboarding. Step back a
+  /// stage instead, and only let the pop through on the first one.
+  void _onPopInvoked(bool didPop, Object? result) {
+    if (didPop) return;
+    if (_stage > 0) _goStage(_stage - 1);
+  }
+
   Future<void> _finish() async {
     await OnboardingView.setOnboardingCompleted();
     if (!mounted) return;
@@ -190,9 +196,17 @@ class _OnboardingViewState extends State<OnboardingView> {
   Widget _buildStage() {
     switch (_stage) {
       case 1:
-        return _CarouselStage(key: const ValueKey('carousel'), onDone: () => _goStage(2));
+        return _CarouselStage(
+          key: const ValueKey('carousel'),
+          onDone: () => _goStage(2),
+          onBack: () => _goStage(0),
+        );
       case 2:
-        return _ReviewsStage(key: const ValueKey('reviews'), onContinue: _finish);
+        return _ReviewsStage(
+          key: const ValueKey('reviews'),
+          onContinue: _finish,
+          onBack: () => _goStage(1),
+        );
       default:
         return _WelcomeStage(key: const ValueKey('welcome'), onGetStarted: () => _goStage(1));
     }
@@ -200,20 +214,53 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: _Pg.bgGradient),
-        child: SafeArea(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 480),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, anim) {
-              final slide = Tween<Offset>(begin: const Offset(0.08, 0), end: Offset.zero)
-                  .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
-              return FadeTransition(opacity: anim, child: SlideTransition(position: slide, child: child));
-            },
-            child: _buildStage(),
+    return PopScope(
+      canPop: _stage == 0,
+      onPopInvokedWithResult: _onPopInvoked,
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: _Pg.bgGradient),
+          child: SafeArea(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 480),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, anim) {
+                final slide = Tween<Offset>(begin: const Offset(0.08, 0), end: Offset.zero)
+                    .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                return FadeTransition(opacity: anim, child: SlideTransition(position: slide, child: child));
+              },
+              child: _buildStage(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Visible back affordance for the onboarding stages past the first one.
+class _OnboardingBackButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _OnboardingBackButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+            child: const Icon(Icons.arrow_back_rounded, color: _Pg.white, size: 20),
           ),
         ),
       ),
@@ -336,7 +383,8 @@ class _CarouselSlide {
 
 class _CarouselStage extends StatefulWidget {
   final VoidCallback onDone;
-  const _CarouselStage({required this.onDone, super.key});
+  final VoidCallback onBack;
+  const _CarouselStage({required this.onDone, required this.onBack, super.key});
 
   @override
   State<_CarouselStage> createState() => _CarouselStageState();
@@ -386,6 +434,7 @@ class _CarouselStageState extends State<_CarouselStage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        _OnboardingBackButton(onTap: widget.onBack),
         const SizedBox(height: 12),
         Expanded(
           child: PageView.builder(
@@ -685,7 +734,8 @@ class _Review {
 
 class _ReviewsStage extends StatefulWidget {
   final VoidCallback onContinue;
-  const _ReviewsStage({required this.onContinue, super.key});
+  final VoidCallback onBack;
+  const _ReviewsStage({required this.onContinue, required this.onBack, super.key});
 
   static const _avatars = <(String, List<Color>)>[
     ('M', [Color(0xFFA855F7), Color(0xFF7C3AED)]),
@@ -722,35 +772,17 @@ class _ReviewsStage extends StatefulWidget {
 }
 
 class _ReviewsStageState extends State<_ReviewsStage> {
-  @override
-  void initState() {
-    super.initState();
-    // Landing on the social-proof screen is a natural high-intent moment to ask
-    // for an app store review. Fire once after the entrance animation settles.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future.delayed(const Duration(milliseconds: 1100));
-      if (!mounted) return;
-      await _requestReview();
-    });
-  }
-
-  Future<void> _requestReview() async {
-    if (kIsWeb) return;
-    try {
-      final review = InAppReview.instance;
-      if (await review.isAvailable()) {
-        await review.requestReview();
-      }
-    } catch (_) {
-      // Review prompt is best-effort; never block onboarding on it.
-    }
-  }
+  // No automatic review prompt here: asking before the user has generated a
+  // single prompt goes against Apple's HIG (the request must follow real
+  // engagement). The "Rate the app" row in Profile is the user-initiated entry
+  // point instead.
 
   @override
   Widget build(BuildContext context) {
     final reviews = _ReviewsStage._reviews;
     return Column(
       children: [
+        _OnboardingBackButton(onTap: widget.onBack),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 8),

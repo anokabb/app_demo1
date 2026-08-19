@@ -1,5 +1,11 @@
 part of 'subscription_cubit.dart';
 
+/// Default value for [SubscriptionState.copyWith]'s nullable params so an
+/// omitted argument ("keep current value") can be told apart from an explicit
+/// `null` ("clear this field"). Without it `error: null` was a silent no-op and
+/// the error could never be cleared once set.
+const _unspecified = Object();
+
 class SubscriptionState {
   final bool isLoading;
   final bool isSubscriber;
@@ -17,18 +23,20 @@ class SubscriptionState {
 
   const SubscriptionState.initial() : this();
 
+  /// Nullable fields ([error], [customerInfo]) accept an explicit `null` to
+  /// clear them — omit the argument entirely to keep the current value.
   SubscriptionState copyWith({
     bool? isLoading,
     bool? isSubscriber,
-    CustomerInfo? customerInfo,
-    String? error,
+    Object? customerInfo = _unspecified,
+    Object? error = _unspecified,
     int? freeLimit,
   }) {
     return SubscriptionState(
       isLoading: isLoading ?? this.isLoading,
       isSubscriber: isSubscriber ?? this.isSubscriber,
-      customerInfo: customerInfo ?? this.customerInfo,
-      error: error ?? this.error,
+      customerInfo: identical(customerInfo, _unspecified) ? this.customerInfo : customerInfo as CustomerInfo?,
+      error: identical(error, _unspecified) ? this.error : error as String?,
       freeLimit: freeLimit ?? this.freeLimit,
     );
   }

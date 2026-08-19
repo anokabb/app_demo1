@@ -1,4 +1,5 @@
 import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_app_template/src/core/services/logger/logger.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/models/remote_config_models.dart';
 
@@ -13,17 +14,18 @@ class RemoteConfigService {
   Future<void> initialize() async {
     try {
       _remoteConfig = FirebaseRemoteConfig.instance;
-      _remoteConfig.setConfigSettings(
+      await _remoteConfig.setConfigSettings(
         RemoteConfigSettings(
           fetchTimeout: const Duration(seconds: 30),
-          minimumFetchInterval: const Duration(seconds: 1),
+          // A 1 second interval invites Firebase throttling in production.
+          minimumFetchInterval: kDebugMode ? const Duration(seconds: 1) : const Duration(hours: 1),
         ),
       );
       await _setDefaultValues();
       _logger.i('Remote Config initialized successfully');
     } catch (e, stackTrace) {
+      // Never rethrow: a Remote Config failure must not block app bootstrap.
       _logger.e('Failed to initialize Remote Config', error: e, stackTrace: stackTrace);
-      rethrow;
     }
   }
 
@@ -36,7 +38,14 @@ class RemoteConfigService {
       _logger.i('Remote config fetched successfully: ${data.toJson()}');
     } catch (e, stackTrace) {
       _logger.e('Failed to fetch remote config', error: e, stackTrace: stackTrace);
-      data = const RemoteConfigModel();
+      // The SDK still serves the last activated values from disk (or the
+      // registered defaults), so prefer those over an empty model.
+      try {
+        data = _parseRemoteConfig();
+      } catch (e2, stackTrace2) {
+        _logger.e('Failed to read cached remote config', error: e2, stackTrace: stackTrace2);
+        data = const RemoteConfigModel();
+      }
     }
   }
 

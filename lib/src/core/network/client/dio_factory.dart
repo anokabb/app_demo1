@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class DioFactory {
   static Dio create({
@@ -15,10 +16,13 @@ class DioFactory {
 
     dio.interceptors.addAll([
       if (interceptors != null) ...interceptors,
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-      ),
+      // Request/response bodies contain the Gemini API key and base64 user
+      // photos, so this interceptor must never be attached in release builds.
+      if (kDebugMode)
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+        ),
     ]);
 
     return dio;

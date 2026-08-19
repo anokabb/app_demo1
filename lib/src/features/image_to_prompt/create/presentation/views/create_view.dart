@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -77,6 +76,10 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
   late final Animation<double> _resultFadeAnimation;
   bool _wasShowingResult = false;
   bool _isDragging = false;
+  // `saveCurrentResult` is async and the button only disappears once
+  // `resultSaved` is emitted, so without this a fast double-tap writes two
+  // history entries.
+  bool _isSaving = false;
   late int _lastScrollTopTick = cubit.state.scrollToTopTick;
   final _resultKey = GlobalKey();
 
@@ -178,6 +181,16 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
     cubit.pasteImageUrl(text);
   }
 
+  Future<void> _saveCurrentResult() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      await cubit.saveCurrentResult();
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   Future<void> _pickLanguage(PromptColors c) async {
     final selected = await showLanguagePickerSheet(context: context, c: c, current: cubit.state.outputLanguage);
     if (selected != null) cubit.setOutputLanguage(selected);
@@ -250,12 +263,20 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: Image.memory(
-                        state.pickedImageBytes!,
-                        width: double.infinity,
-                        height: 220,
-                        fit: BoxFit.cover,
-                      ),
+                      child: state.pickedImageBytes!.isEmpty
+                          ? _BrokenImagePlaceholder(c: c, width: double.infinity, height: 220, iconSize: 34)
+                          : Image.memory(
+                              state.pickedImageBytes!,
+                              width: double.infinity,
+                              height: 220,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, _, __) => _BrokenImagePlaceholder(
+                                c: c,
+                                width: double.infinity,
+                                height: 220,
+                                iconSize: 34,
+                              ),
+                            ),
                     ),
                     if (state.imageUrl.isNotEmpty)
                       Positioned(
@@ -515,20 +536,27 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.language, color: c.accentText, size: 20),
-                          const SizedBox(width: 10),
-                          Text(
-                            state.outputLanguage,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: c.ink,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(Icons.language, color: c.accentText, size: 20),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                state.outputLanguage,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: c.ink,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Icon(Icons.keyboard_arrow_down, color: c.muted, size: 18),
                     ],
                   ),
@@ -540,7 +568,8 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
               GestureDetector(
                 onTap: state.isGenerating ? null : cubit.generate,
                 child: Container(
-                  height: 66,
+                  constraints: const BoxConstraints(minHeight: 66),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(33),
                     gradient: PromptColors.accentGradient,
@@ -564,13 +593,18 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                       else
                         const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
                       const SizedBox(width: 12),
-                      Text(
-                        state.isGenerating ? 'Generating...' : 'Generate Prompt',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.18,
+                      Flexible(
+                        child: Text(
+                          state.isGenerating ? 'Generating...' : 'Generate Prompt',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.18,
+                          ),
                         ),
                       ),
                     ],
@@ -617,27 +651,30 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                             children: [
                               if (!state.autoSave && !state.resultSaved && !state.isGenerating) ...[
                                 GestureDetector(
-                                  onTap: cubit.saveCurrentResult,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: c.accentSoft,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.save_outlined, color: c.accentText, size: 14),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'SAVE',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.72,
-                                            color: c.accentText,
+                                  onTap: _isSaving ? null : _saveCurrentResult,
+                                  child: Opacity(
+                                    opacity: _isSaving ? 0.5 : 1,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: c.accentSoft,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.save_outlined, color: c.accentText, size: 14),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'SAVE',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.72,
+                                              color: c.accentText,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -686,24 +723,34 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Recent Creations',
-                    style: TextStyle(
-                      fontSize: 23,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.46,
-                      color: c.ink,
+                  Expanded(
+                    child: Text(
+                      'Recent Creations',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.46,
+                        color: c.ink,
+                      ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => context.go(HistoryView.routeName),
-                    child: Text(
-                      'VIEW ALL',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.04,
-                        color: c.accentText,
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () => context.go(HistoryView.routeName),
+                      child: Text(
+                        'VIEW ALL',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.04,
+                          color: c.accentText,
+                        ),
                       ),
                     ),
                   ),
@@ -745,12 +792,16 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(13),
-                            child: Image.memory(
-                              item.imageBytes ?? Uint8List(0),
-                              width: 86,
-                              height: 86,
-                              fit: BoxFit.cover,
-                            ),
+                            child: (item.imageBytes == null || item.imageBytes!.isEmpty)
+                                ? _BrokenImagePlaceholder(c: c, width: 86, height: 86)
+                                : Image.memory(
+                                    item.imageBytes!,
+                                    width: 86,
+                                    height: 86,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, _, __) =>
+                                        _BrokenImagePlaceholder(c: c, width: 86, height: 86),
+                                  ),
                           ),
                           const SizedBox(width: 15),
                           Expanded(
@@ -883,6 +934,33 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
           ),
         );
       },
+    );
+  }
+}
+
+/// Stands in for an image that can't be decoded — history entries can hold an
+/// empty byte list when their Hive blob is missing, and decoding that throws
+/// "Invalid image data" on every rebuild.
+class _BrokenImagePlaceholder extends StatelessWidget {
+  final PromptColors c;
+  final double width;
+  final double height;
+  final double iconSize;
+
+  const _BrokenImagePlaceholder({
+    required this.c,
+    required this.width,
+    required this.height,
+    this.iconSize = 22,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      color: c.field,
+      child: Icon(Icons.image_not_supported_outlined, color: c.muted, size: iconSize),
     );
   }
 }

@@ -14,6 +14,9 @@ import 'package:flutter_app_template/src/features/image_to_prompt/presentation/p
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileView extends StatefulWidget {
@@ -28,6 +31,24 @@ class _ProfileViewState extends State<ProfileView> {
   final cubit = locator<ImageToPromptCubit>();
   final _subscriptionCubit = locator<SubscriptionCubit>();
   final _scrollController = ScrollController();
+
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() => _appVersion = info.version);
+    } catch (_) {
+      // Leave the row's trailing value blank if the platform lookup fails.
+    }
+  }
 
   @override
   void dispose() {
@@ -61,6 +82,43 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
+  /// Derives a display-friendly plan name and expiry date from the active
+  /// subscription's product identifier (e.g. `...weekly_standard`).
+  ({String plan, String? expiresOn}) _subscriptionDetails(CustomerInfo? info) {
+    if (info == null || info.activeSubscriptions.isEmpty) {
+      return (plan: 'Pro Plan', expiresOn: null);
+    }
+    // During a plan change several subscriptions can be active at once, so pick
+    // the one that runs the longest rather than an arbitrary entry.
+    String? productId;
+    DateTime? expiry;
+    for (final id in info.activeSubscriptions) {
+      final parsed = _tryParseDate(info.allExpirationDates[id]);
+      if (productId == null || (parsed != null && (expiry == null || parsed.isAfter(expiry)))) {
+        productId = id;
+        expiry = parsed;
+      }
+    }
+    productId ??= info.activeSubscriptions.first;
+
+    final plan = productId.contains('yearly')
+        ? 'Yearly Plan'
+        : productId.contains('monthly')
+            ? 'Monthly Plan'
+            : productId.contains('weekly')
+                ? 'Weekly Plan'
+                : 'Pro Plan';
+    final expiresOn = expiry != null ? DateFormat('MMM d, yyyy').format(expiry.toLocal()) : null;
+    return (plan: plan, expiresOn: expiresOn);
+  }
+
+  /// This runs inside `build()`, so a malformed date must never throw — an
+  /// unguarded [DateTime.parse] there is a red screen.
+  static DateTime? _tryParseDate(String? iso) {
+    if (iso == null) return null;
+    return DateTime.tryParse(iso);
+  }
+
   Future<void> _openEmail(String email) async {
     try {
       final launched = await launchUrl(Uri.parse('mailto:$email'));
@@ -84,13 +142,13 @@ class _ProfileViewState extends State<ProfileView> {
         final c = PromptColors(state.darkMode);
         return BlocBuilder<SubscriptionCubit, SubscriptionState>(
           bloc: _subscriptionCubit,
-          builder: (context, subState) => _buildBody(context, c, subState.isSubscriber),
+          builder: (context, subState) => _buildBody(context, c, subState.isSubscriber, subState.customerInfo),
         );
       },
     );
   }
 
-  Widget _buildBody(BuildContext context, PromptColors c, bool isPro) {
+  Widget _buildBody(BuildContext context, PromptColors c, bool isPro, CustomerInfo? customerInfo) {
     final credits = isPro ? '∞' : _subscriptionCubit.remainingFreeActions.toString();
     final stats = [
       (cubit.state.history.length.toString(), 'PROMPTS'),
@@ -212,7 +270,7 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               if (!isPro) ...[
                 const SizedBox(height: 24),
-                _GetProButton(c: c, onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.second_offer)),
+                _GetProButton(c: c, onTap: () => _subscriptionCubit.showPaywall(PaywallOffers.first_offer)),
               ],
               const SizedBox(height: 18),
 
@@ -263,6 +321,11 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               const SizedBox(height: 8),
 
+              if (isPro) ...[
+                _ProfileSectionLabel(label: 'SUBSCRIPTION', c: c),
+                _SubscriptionCard(c: c, details: _subscriptionDetails(customerInfo)),
+              ],
+
               if (legalRows.isNotEmpty) ...[
                 _ProfileSectionLabel(label: 'LEGAL & SUPPORT', c: c),
                 Container(
@@ -299,7 +362,7 @@ class _ProfileViewState extends State<ProfileView> {
                 child: Column(
                   children: [
                     _ProfileRow(icon: Icons.star_outline, title: 'Rate the app', c: c, isFirst: true, onTap: _rateApp),
-                    _ProfileRow(icon: Icons.info_outline, title: 'App version', trailing: '2.4.0', c: c),
+                    _ProfileRow(icon: Icons.info_outline, title: 'App version', trailing: _appVersion, c: c),
                   ],
                 ),
               ),
@@ -371,8 +434,11 @@ class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderS
             strokeWidth: 1.5,
             color: accent.withValues(alpha: 0.6),
             child: Container(
-              height: 46,
+              // Min height rather than a fixed one: at large Dynamic Type the
+              // two-line label needs to be able to grow.
+              constraints: const BoxConstraints(minHeight: 46),
               width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: c.accentSoft,
                 borderRadius: BorderRadius.circular(14),
@@ -382,28 +448,30 @@ class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderS
                 children: [
                   Icon(Icons.workspace_premium_rounded, color: accent, size: 17),
                   const SizedBox(width: 8),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Get Pro Version',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                          color: accent,
+                  Flexible(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Get Pro Version',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                            color: accent,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Unlock unlimited prompts',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w500,
-                          color: accent.withValues(alpha: 0.7),
+                        Text(
+                          'Unlock unlimited prompts',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w500,
+                            color: accent.withValues(alpha: 0.7),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Icon(Icons.arrow_forward_rounded, color: accent, size: 15),
@@ -412,6 +480,61 @@ class _GetProButtonState extends State<_GetProButton> with SingleTickerProviderS
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Mirrors [_GetProButton]'s layout (solid accent border, soft accent fill,
+/// icon + title/subtitle) but as a static info card rather than a CTA — no
+/// dotted border, pulse, or arrow, since there's nothing to tap.
+class _SubscriptionCard extends StatelessWidget {
+  final PromptColors c;
+  final ({String plan, String? expiresOn}) details;
+  const _SubscriptionCard({required this.c, required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = c.accentText;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: c.accentSoft,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.3), width: 1.5),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Icon(Icons.workspace_premium_rounded, color: accent, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  details.plan,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    color: accent,
+                  ),
+                ),
+                if (details.expiresOn != null)
+                  Text(
+                    'Active until ${details.expiresOn}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: accent.withValues(alpha: 0.7),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

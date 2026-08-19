@@ -38,11 +38,22 @@ class App extends StatelessWidget {
                 theme: AppTheme.light(
                   AppTheme.getFontFamily(locale?.languageCode ?? DEFAULT_LANGUAGE.name),
                 ),
+                // Without a darkTheme, every Material-provided surface (text
+                // selection handles, the copy/paste toolbar, the TextField
+                // cursor, keyboard brightness) stays light while the app paints
+                // dark.
+                darkTheme: AppTheme.dark(
+                  AppTheme.getFontFamily(locale?.languageCode ?? DEFAULT_LANGUAGE.name),
+                ),
                 themeMode: themeState.themeMode,
                 routerConfig: routerConfig,
                 localizationsDelegates: AppLocalizations.localizationsDelegates,
-                supportedLocales: AppLocalizations.supportedLocales,
-                locale: locale,
+                // Every PromptGen screen is hardcoded English, so advertising a
+                // second locale only flips the layout to RTL on an Arabic device
+                // while leaving the text untranslated. Restrict to English until
+                // the screens actually go through AppLocalizations.
+                supportedLocales: const [Locale('en')],
+                locale: const Locale('en'),
                 builder: (context, child) {
                   Widget upgraderChild = UpgradeAlert(
                     navigatorKey: rootNavigatorKey,

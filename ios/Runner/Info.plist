@@ -7,7 +7,7 @@
 		<key>CFBundleDisplayName</key>
 		<string>PromptGen</string>
 		<key>CFBundleName</key>
-		<string>project_name_here</string>
+		<string>PromptGen</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>

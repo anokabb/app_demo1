@@ -14,7 +14,7 @@ class EnvConfig {
   static const String _backendEnvironmentKey = 'backend_environment';
 
   static String get baseUrl => dotenv.get('BASE_URL', fallback: '');
-  static bool get showEnvBanner => devBox.get('showEnvBanner', defaultValue: kDebugMode ? true : false);
+  static bool get showEnvBanner => devBox.get('showEnvBanner', defaultValue: false);
   static String get currentEnv => devBox.get(
         'env',
         defaultValue: const String.fromEnvironment(

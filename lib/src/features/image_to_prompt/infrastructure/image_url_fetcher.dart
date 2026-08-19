@@ -43,7 +43,30 @@ class ImageUrlFetcher {
         return left(const AppError.server(message: 'Image is too large (max 8MB).'));
       }
       _log.e('[ERROR fetch] ${e.toString()}');
-      return left(AppError.fromException(e));
+      return left(_mapException(e));
     }
+  }
+
+  /// Accurate, user-facing reason for a failed download — the generic
+  /// [AppError.fromException] mapping reported timeouts for failures that were
+  /// really bad status codes or connection errors.
+  static AppError _mapException(Object e) {
+    if (e is DioException) {
+      final status = e.response?.statusCode;
+      if (status != null) {
+        return AppError.server(message: 'The URL returned HTTP $status.', statusCode: status);
+      }
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.sendTimeout:
+          return const AppError.server(message: 'The download timed out.');
+        case DioExceptionType.connectionError:
+          return const AppError.server(message: 'No internet connection.');
+        default:
+          return const AppError.server(message: 'The URL could not be downloaded.');
+      }
+    }
+    return const AppError.server(message: 'The URL could not be downloaded.');
   }
 }

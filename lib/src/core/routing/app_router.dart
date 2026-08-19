@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_app_template/src/core/routing/app_shell.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/create_tab.dart';
 import 'package:flutter_app_template/src/core/routing/tabs/history_tab.dart';
@@ -58,10 +59,12 @@ class AppRouter {
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => CupertinoPage(child: const OnboardingView()),
       ),
-      GoRoute(
-        path: DevModeView.routeName,
-        pageBuilder: (context, state) => CupertinoPage(child: DevModeView()),
-      ),
+      // Dev mode is only routable in debug builds.
+      if (kDebugMode)
+        GoRoute(
+          path: DevModeView.routeName,
+          pageBuilder: (context, state) => CupertinoPage(child: DevModeView()),
+        ),
       GoRoute(
         path: ThemePage.routeName,
         pageBuilder: (context, state) => CupertinoPage(child: ThemePage()),

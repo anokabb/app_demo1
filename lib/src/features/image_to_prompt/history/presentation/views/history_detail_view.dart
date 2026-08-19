@@ -173,7 +173,16 @@ class _HistoryDetailViewState extends State<HistoryDetailView> with TickerProvid
                                           height: imageHeight,
                                           width: double.infinity,
                                           child: imageBytes != null && imageBytes.isNotEmpty
-                                              ? Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity)
+                                              ? Image.memory(
+                                                  imageBytes,
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  errorBuilder: (context, _, __) => Container(
+                                                    color: c.field,
+                                                    child: Icon(Icons.image_not_supported_outlined,
+                                                        size: 56, color: c.muted),
+                                                  ),
+                                                )
                                               : Container(
                                                   color: c.field,
                                                   child: Icon(Icons.image_outlined, size: 56, color: c.muted),
@@ -483,7 +492,15 @@ class _ImagePreviewViewState extends State<_ImagePreviewView> with SingleTickerP
                     minScale: 1,
                     maxScale: 5,
                     child: Center(
-                      child: Image.memory(widget.imageBytes, fit: BoxFit.contain),
+                      child: Image.memory(
+                        widget.imageBytes,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, _, __) => const Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 56,
+                          color: Colors.white54,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -562,13 +579,17 @@ class _PromptGenWordmark extends StatelessWidget {
       children: [
         Assets.images.appIconTransparent.image(width: 30, height: 30),
         const SizedBox(width: 9),
-        Text(
-          'PromptGen',
-          style: TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.42,
-            color: c.accentText,
+        Flexible(
+          child: Text(
+            'PromptGen',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.42,
+              color: c.accentText,
+            ),
           ),
         ),
       ],
@@ -611,7 +632,12 @@ class _DetailHeader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _HeaderIconButton(icon: Icons.arrow_back, c: c, onTap: onBack),
-                _PromptGenWordmark(c: c),
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: _PromptGenWordmark(c: c),
+                  ),
+                ),
                 const SizedBox(width: 40),
               ],
             ),

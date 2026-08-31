@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_template/l10n/app_localizations.dart';
-import 'package:flutter_app_template/src/core/components/layouts/buttons/app_button.dart';
-import 'package:flutter_app_template/src/core/components/pop_up/app_pop_up.dart';
 import 'package:flutter_app_template/src/core/constants/env_config.dart';
 import 'package:flutter_app_template/src/core/constants/hive_config.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
@@ -10,6 +8,7 @@ import 'package:flutter_app_template/src/core/routing/app_router.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
 import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/update_app_pop_up.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
 import 'package:flutter_app_template/src/features/theme/presentation/cubit/theme_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -76,19 +75,19 @@ class App extends StatelessWidget {
                       Function() onUpdate,
                       Function() onCancel,
                     ) {
-                      return AppPopUp(
+                      final isForceUpdate = locator<RemoteConfigService>().isForceUpdate;
+                      return UpdateAppPopUp(
                         title: title,
-                        description: message,
-                        confirmText: context.localization.updateNow.toUpperCase(),
-                        onConfirm: onUpdate,
-                        actions: [
-                          if (!locator<RemoteConfigService>().isForceUpdate)
-                            AppButton(
-                              label: context.localization.later.toUpperCase(),
-                              backgroundColor: context.theme.appColors.secondaryBackground,
-                              onPressed: onIgnore,
-                            ),
-                        ],
+                        message: message,
+                        releaseNotes: releaseNotes,
+                        updateLabel: context.localization.updateNow,
+                        onUpdate: onUpdate,
+                        // `onCancel` here is the package's "remind me later"
+                        // callback (no permanent state saved); `onIgnore`
+                        // permanently silences this version instead, which is
+                        // not what a "Later" button should do.
+                        laterLabel: isForceUpdate ? null : context.localization.later,
+                        onLater: isForceUpdate ? null : onCancel,
                       );
                     },
                   );

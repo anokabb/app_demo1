@@ -50,6 +50,10 @@ abstract class SettingsConfigModel with _$SettingsConfigModel {
 
     // Third-party API keys
     @Default('') String geminiApiKey,
+
+    // Hides the in-app "sent to Gemini" notice text under the Generate
+    // button without touching the consent flow itself.
+    @Default(false) bool hideGeminiDeclaration,
   }) = _SettingsConfigModel;
 
   factory SettingsConfigModel.fromJson(Map<String, dynamic> json) => _$SettingsConfigModelFromJson(json);
@@ -68,6 +72,7 @@ class RemoteConfigKeys {
   static const String contactUsEmail = 'contact_us_email';
   static const String forceUpdate = 'force_update';
   static const String geminiApiKey = 'gemini_api_key';
+  static const String hideGeminiDeclaration = 'hide_gemini_declaration';
 
   // RevenueCat Config
   static const String revenueIOSApiKey = 'revenue_ios_api_key';

@@ -48,6 +48,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get later => 'لاحقاً';
 
   @override
+  String get whatsNew => 'ما الجديد';
+
+  @override
   String get thisFieldIsRequired => 'هذا الحقل مطلوب';
 
   @override

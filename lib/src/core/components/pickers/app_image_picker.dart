@@ -1,9 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
 import 'package:flutter_app_template/src/core/components/widgets/tap_opacity.dart';
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
@@ -11,6 +10,7 @@ import 'package:flutter_app_template/src/core/services/theme/app_colors.dart';
 import 'package:flutter_app_template/src/core/services/theme/app_theme.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AppImagePicker extends StatefulWidget {
   /// The aspect ratio of the image picker, default aspect ratio is 3:1.
@@ -30,11 +30,52 @@ class AppImagePicker extends StatefulWidget {
   @override
   State<AppImagePicker> createState() => _AppImagePickerState();
 
+  /// Asks the user for a source, then returns the picked file.
+  ///
+  /// The source sheet is dismissed *before* the system picker is presented.
+  /// Launching `UIImagePickerController` from a route that is itself still
+  /// being torn down leaves the camera presented over a dying view controller,
+  /// which is what produced the black camera screen App Review saw on iPad.
   static Future<XFile?> showPopUp({
     required BuildContext context,
     required PromptColors c,
   }) async {
-    return await SlideUpPopUp.show<XFile?>(
+    final source = await _showSourceSheet(context: context, c: c);
+    if (source == null) return null;
+    if (!context.mounted) return null;
+
+    // Let the sheet's dismiss transition finish so the system picker is
+    // presented from a settled view controller.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!context.mounted) return null;
+
+    try {
+      // No permission pre-check here on purpose: image_picker_ios already calls
+      // `AVCaptureDevice requestAccessForMediaType:` and surfaces a refusal as
+      // the `camera_access_denied` error below, so asking again would only put
+      // a second, redundant gate in front of the native prompt.
+      return await _pickImage(source);
+    } on PlatformException catch (e) {
+      // A refusal comes back as an error rather than as UI, so it has to be
+      // surfaced here — otherwise the tap looks like it did nothing. The other
+      // codes cover devices with no usable camera.
+      if (e.code == 'camera_access_denied') {
+        if (context.mounted) await _showCameraDeniedSheet(context, c);
+      } else {
+        showTopAlert("Couldn't open the camera on this device.", isError: true);
+      }
+      return null;
+    } catch (_) {
+      showTopAlert("Couldn't open the image picker. Please try again.", isError: true);
+      return null;
+    }
+  }
+
+  static Future<ImageSource?> _showSourceSheet({
+    required BuildContext context,
+    required PromptColors c,
+  }) {
+    return SlideUpPopUp.show<ImageSource?>(
       context: context,
       backgroundColor: c.card,
       borderRadius: BorderRadius.circular(24),
@@ -57,9 +98,7 @@ class AppImagePicker extends StatefulWidget {
               icon: Icons.camera_alt_rounded,
               label: context.localization.takePhoto,
               subtitle: context.localization.takePhotoSubtitle,
-              onTap: () async {
-                Navigator.of(context).pop(await _pickImage(ImageSource.camera));
-              },
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
             ),
             Divider(color: c.line, height: 1, indent: 20, endIndent: 20),
             _PickerOption(
@@ -67,15 +106,23 @@ class AppImagePicker extends StatefulWidget {
               icon: Icons.photo_library_rounded,
               label: context.localization.fromGallery,
               subtitle: context.localization.fromGallerySubtitle,
-              onTap: () async {
-                Navigator.of(context).pop(await _pickImage(ImageSource.gallery));
-              },
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
             ),
             const SizedBox(height: 12),
           ],
         ),
       ),
     );
+  }
+
+  static Future<void> _showCameraDeniedSheet(BuildContext context, PromptColors c) async {
+    final openSettings = await SlideUpPopUp.show<bool>(
+      context: context,
+      backgroundColor: c.card,
+      borderRadius: BorderRadius.circular(24),
+      child: _CameraDeniedSheet(c: c),
+    );
+    if (openSettings == true) await openAppSettings();
   }
 
   /// Longest edge a picked image is downscaled to before it ever reaches memory.
@@ -94,6 +141,102 @@ class AppImagePicker extends StatefulWidget {
       maxWidth: _maxDimension,
       maxHeight: _maxDimension,
       imageQuality: _imageQuality,
+    );
+  }
+}
+
+class _CameraDeniedSheet extends StatelessWidget {
+  final PromptColors c;
+
+  const _CameraDeniedSheet({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: c.iconBox, shape: BoxShape.circle),
+            child: Icon(Icons.no_photography_outlined, color: c.accentText, size: 24),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Camera access is off',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: c.ink),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'PromptGen needs camera access to take a photo. You can turn it on in Settings, '
+            'or pick an image from your photo library instead.',
+            style: TextStyle(fontSize: 14, color: c.muted, height: 1.4),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: _SheetAction(
+                  label: 'Not now',
+                  c: c,
+                  filled: false,
+                  onTap: () => Navigator.of(context).pop(false),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SheetAction(
+                  label: 'Open Settings',
+                  c: c,
+                  filled: true,
+                  onTap: () => Navigator.of(context).pop(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SheetAction extends StatelessWidget {
+  final String label;
+  final PromptColors c;
+  final bool filled;
+  final VoidCallback onTap;
+
+  const _SheetAction({
+    required this.label,
+    required this.c,
+    required this.filled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TapOpacity(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: filled ? null : c.field,
+          gradient: filled ? PromptColors.accentGradient : null,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: filled ? Colors.white : c.muted,
+          ),
+        ),
+      ),
     );
   }
 }

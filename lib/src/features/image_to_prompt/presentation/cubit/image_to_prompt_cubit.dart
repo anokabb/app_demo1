@@ -120,11 +120,9 @@ class ImageToPromptCubit extends Cubit<ImageToPromptState> {
 
   // Passing null clears the filter; the Unset sentinel forces copyWith to write
   // null rather than treating the omitted arg as "keep current value".
-  void setHistTier(ImagePromptModelTier? tier) =>
-      emit(state.copyWith(histTier: tier ?? const Unset()));
+  void setHistTier(ImagePromptModelTier? tier) => emit(state.copyWith(histTier: tier ?? const Unset()));
 
-  void setHistLanguage(String? language) =>
-      emit(state.copyWith(histLanguage: language ?? const Unset()));
+  void setHistLanguage(String? language) => emit(state.copyWith(histLanguage: language ?? const Unset()));
 
   void setHistorySearch(String query) => emit(state.copyWith(historySearch: query));
 

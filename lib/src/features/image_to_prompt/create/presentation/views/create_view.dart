@@ -8,12 +8,14 @@ import 'package:flutter_app_template/src/core/components/pickers/app_image_picke
 import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/extensions/extensions.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_url_fetcher.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/ai_disclosure_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/language_picker_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -611,6 +613,45 @@ class _CreateViewState extends State<CreateView> with SingleTickerProviderStateM
                   ),
                 ),
               ),
+
+              // Standing disclosure of the third-party AI service (guideline
+              // 5.1.1(i)) — visible before every generation, not only in the
+              // one-time consent sheet. The consent sheet itself is never
+              // gated by remote config — only this reminder text is, via
+              // `hide_gemini_declaration`.
+              if (!locator<RemoteConfigService>().data.settings.hideGeminiDeclaration) ...[
+                const SizedBox(height: 14),
+                GestureDetector(
+                  onTap: () => AiDisclosureSheet.showInfo(context: context, c: c),
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Icon(Icons.info_outline, size: 13, color: c.muted),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Your image is sent to $kAiProviderName to create the prompt. ',
+                            style: TextStyle(fontSize: 11.5, height: 1.4, color: c.muted),
+                            children: [
+                              TextSpan(
+                                text: 'Learn more',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: c.accentText),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               // Result card
               if (state.showResult) ...[

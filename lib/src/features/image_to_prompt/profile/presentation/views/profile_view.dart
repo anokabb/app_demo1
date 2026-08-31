@@ -11,6 +11,7 @@ import 'package:flutter_app_template/src/core/services/remote_config/remote_conf
 import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_view.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/ai_disclosure_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -157,6 +158,13 @@ class _ProfileViewState extends State<ProfileView> {
     ];
     final settings = locator<RemoteConfigService>().data.settings;
     final legalRows = <_ProfileLink>[
+      // Kept first, and always present, so the third-party AI disclosure is
+      // reachable — and revocable — without depending on Remote Config.
+      _ProfileLink(
+        Icons.cloud_upload_outlined,
+        'AI & Data Sharing',
+        () => AiDisclosureSheet.showInfo(context: context, c: c),
+      ),
       if (settings.privacyPolicyUrl.isNotEmpty)
         _ProfileLink(Icons.privacy_tip_outlined, 'Privacy Policy', () => _openUrl(settings.privacyPolicyUrl)),
       if (settings.termsOfServiceUrl.isNotEmpty)

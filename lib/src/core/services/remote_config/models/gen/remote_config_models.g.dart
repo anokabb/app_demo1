@@ -64,6 +64,7 @@ _$SettingsConfigModelImpl _$$SettingsConfigModelImplFromJson(
       accountDeletionUrl: json['account_deletion_url'] as String? ?? '',
       forceUpdate: json['force_update'] as bool? ?? false,
       geminiApiKey: json['gemini_api_key'] as String? ?? '',
+      hideGeminiDeclaration: json['hide_gemini_declaration'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$SettingsConfigModelImplToJson(
@@ -79,4 +80,5 @@ Map<String, dynamic> _$$SettingsConfigModelImplToJson(
       'account_deletion_url': instance.accountDeletionUrl,
       'force_update': instance.forceUpdate,
       'gemini_api_key': instance.geminiApiKey,
+      'hide_gemini_declaration': instance.hideGeminiDeclaration,
     };

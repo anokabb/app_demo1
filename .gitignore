@@ -48,3 +48,4 @@ deployment/*
 
 # FVM Version Cache
 .fvm/
+store_assets/

@@ -48,6 +48,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get later => 'Later';
 
   @override
+  String get whatsNew => 'What\'s New';
+
+  @override
   String get thisFieldIsRequired => 'This field is required';
 
   @override

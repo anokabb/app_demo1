@@ -517,7 +517,10 @@ mixin _$SettingsConfigModel {
       throw _privateConstructorUsedError; // App updates
   bool get forceUpdate =>
       throw _privateConstructorUsedError; // Third-party API keys
-  String get geminiApiKey => throw _privateConstructorUsedError;
+  String get geminiApiKey =>
+      throw _privateConstructorUsedError; // Hides the in-app "sent to Gemini" notice text under the Generate
+// button without touching the consent flow itself.
+  bool get hideGeminiDeclaration => throw _privateConstructorUsedError;
 
   /// Serializes this SettingsConfigModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -545,7 +548,8 @@ abstract class $SettingsConfigModelCopyWith<$Res> {
       bool enableDataDeletion,
       String accountDeletionUrl,
       bool forceUpdate,
-      String geminiApiKey});
+      String geminiApiKey,
+      bool hideGeminiDeclaration});
 }
 
 /// @nodoc
@@ -573,6 +577,7 @@ class _$SettingsConfigModelCopyWithImpl<$Res, $Val extends SettingsConfigModel>
     Object? accountDeletionUrl = null,
     Object? forceUpdate = null,
     Object? geminiApiKey = null,
+    Object? hideGeminiDeclaration = null,
   }) {
     return _then(_value.copyWith(
       privacyPolicyUrl: null == privacyPolicyUrl
@@ -615,6 +620,10 @@ class _$SettingsConfigModelCopyWithImpl<$Res, $Val extends SettingsConfigModel>
           ? _value.geminiApiKey
           : geminiApiKey // ignore: cast_nullable_to_non_nullable
               as String,
+      hideGeminiDeclaration: null == hideGeminiDeclaration
+          ? _value.hideGeminiDeclaration
+          : hideGeminiDeclaration // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -637,7 +646,8 @@ abstract class _$$SettingsConfigModelImplCopyWith<$Res>
       bool enableDataDeletion,
       String accountDeletionUrl,
       bool forceUpdate,
-      String geminiApiKey});
+      String geminiApiKey,
+      bool hideGeminiDeclaration});
 }
 
 /// @nodoc
@@ -663,6 +673,7 @@ class __$$SettingsConfigModelImplCopyWithImpl<$Res>
     Object? accountDeletionUrl = null,
     Object? forceUpdate = null,
     Object? geminiApiKey = null,
+    Object? hideGeminiDeclaration = null,
   }) {
     return _then(_$SettingsConfigModelImpl(
       privacyPolicyUrl: null == privacyPolicyUrl
@@ -705,6 +716,10 @@ class __$$SettingsConfigModelImplCopyWithImpl<$Res>
           ? _value.geminiApiKey
           : geminiApiKey // ignore: cast_nullable_to_non_nullable
               as String,
+      hideGeminiDeclaration: null == hideGeminiDeclaration
+          ? _value.hideGeminiDeclaration
+          : hideGeminiDeclaration // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -722,7 +737,8 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
       this.enableDataDeletion = true,
       this.accountDeletionUrl = '',
       this.forceUpdate = false,
-      this.geminiApiKey = ''});
+      this.geminiApiKey = '',
+      this.hideGeminiDeclaration = false});
 
   factory _$SettingsConfigModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$SettingsConfigModelImplFromJson(json);
@@ -761,10 +777,15 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
   @override
   @JsonKey()
   final String geminiApiKey;
+// Hides the in-app "sent to Gemini" notice text under the Generate
+// button without touching the consent flow itself.
+  @override
+  @JsonKey()
+  final bool hideGeminiDeclaration;
 
   @override
   String toString() {
-    return 'SettingsConfigModel(privacyPolicyUrl: $privacyPolicyUrl, termsOfServiceUrl: $termsOfServiceUrl, aboutUrl: $aboutUrl, helpAndSupportUrl: $helpAndSupportUrl, contactUsEmail: $contactUsEmail, enableAccountDeletion: $enableAccountDeletion, enableDataDeletion: $enableDataDeletion, accountDeletionUrl: $accountDeletionUrl, forceUpdate: $forceUpdate, geminiApiKey: $geminiApiKey)';
+    return 'SettingsConfigModel(privacyPolicyUrl: $privacyPolicyUrl, termsOfServiceUrl: $termsOfServiceUrl, aboutUrl: $aboutUrl, helpAndSupportUrl: $helpAndSupportUrl, contactUsEmail: $contactUsEmail, enableAccountDeletion: $enableAccountDeletion, enableDataDeletion: $enableDataDeletion, accountDeletionUrl: $accountDeletionUrl, forceUpdate: $forceUpdate, geminiApiKey: $geminiApiKey, hideGeminiDeclaration: $hideGeminiDeclaration)';
   }
 
   @override
@@ -791,7 +812,9 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
             (identical(other.forceUpdate, forceUpdate) ||
                 other.forceUpdate == forceUpdate) &&
             (identical(other.geminiApiKey, geminiApiKey) ||
-                other.geminiApiKey == geminiApiKey));
+                other.geminiApiKey == geminiApiKey) &&
+            (identical(other.hideGeminiDeclaration, hideGeminiDeclaration) ||
+                other.hideGeminiDeclaration == hideGeminiDeclaration));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -807,7 +830,8 @@ class _$SettingsConfigModelImpl implements _SettingsConfigModel {
       enableDataDeletion,
       accountDeletionUrl,
       forceUpdate,
-      geminiApiKey);
+      geminiApiKey,
+      hideGeminiDeclaration);
 
   /// Create a copy of SettingsConfigModel
   /// with the given fields replaced by the non-null parameter values.
@@ -837,7 +861,8 @@ abstract class _SettingsConfigModel implements SettingsConfigModel {
       final bool enableDataDeletion,
       final String accountDeletionUrl,
       final bool forceUpdate,
-      final String geminiApiKey}) = _$SettingsConfigModelImpl;
+      final String geminiApiKey,
+      final bool hideGeminiDeclaration}) = _$SettingsConfigModelImpl;
 
   factory _SettingsConfigModel.fromJson(Map<String, dynamic> json) =
       _$SettingsConfigModelImpl.fromJson;
@@ -862,7 +887,11 @@ abstract class _SettingsConfigModel implements SettingsConfigModel {
   @override
   bool get forceUpdate; // Third-party API keys
   @override
-  String get geminiApiKey;
+  String
+      get geminiApiKey; // Hides the in-app "sent to Gemini" notice text under the Generate
+// button without touching the consent flow itself.
+  @override
+  bool get hideGeminiDeclaration;
 
   /// Create a copy of SettingsConfigModel
   /// with the given fields replaced by the non-null parameter values.

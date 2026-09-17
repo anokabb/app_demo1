@@ -63,6 +63,7 @@ platform :ios do
 
     deliver(
       app_identifier: ENV["IOS_APP_IDENTIFIER"],
+      app_version: ENV["APP_STORE_VERSION"],
       skip_binary_upload: true,
       skip_screenshots: true,
       skip_metadata: false,
@@ -82,6 +83,7 @@ platform :ios do
 
     deliver(
       app_identifier: ENV["IOS_APP_IDENTIFIER"],
+      app_version: ENV["APP_STORE_VERSION"],
       skip_binary_upload: true,
       skip_screenshots: true,
       skip_metadata: false,

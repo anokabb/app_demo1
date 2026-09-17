@@ -41,6 +41,13 @@ jobs:
       - name: Install fastlane
         run: gem install fastlane --no-document
 
+      - name: Read app version from pubspec.yaml
+        id: appversion
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
+          echo "App Store version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Write App Store Connect API key
         working-directory: ios
         run: printf '%s' "$APP_STORE_CONNECT_API_KEY" > AppStoreConnect.p8
@@ -49,7 +56,9 @@ jobs:
 
       - name: Run fastlane lane
         working-directory: ios
-        run: bundle exec fastlane ${{ inputs.action }} || fastlane ${{ inputs.action }}
+        run: fastlane ${{ inputs.action }}
+        env:
+          APP_STORE_VERSION: ${{ steps.appversion.outputs.version }}
 
       - name: Clean up API key
         if: always()

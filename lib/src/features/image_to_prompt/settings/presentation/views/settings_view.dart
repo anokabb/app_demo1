@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
+import 'package:flutter_app_template/src/core/components/widgets/tap_opacity.dart';
+import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
+import 'package:flutter_app_template/src/core/services/remote_config/remote_config_service.dart';
+import 'package:flutter_app_template/src/features/dev/presentation/views/app_version_widget.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/delete_confirm_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/prompt_colors.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/language_picker_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/widgets/model_tier_picker_sheet.dart';
+import 'package:flutter_app_template/src/features/onboarding/presentation/views/onboarding_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsView extends StatelessWidget {
   static const routeName = '/image-to-prompt/settings';
@@ -86,14 +94,32 @@ class _SettingsBody extends StatelessWidget {
   final PromptColors c;
   const _SettingsBody({required this.state, required this.cubit, required this.c});
 
-  static const _aboutRows = [
-    ('Rate the app', ''),
-    ('Terms of Service', ''),
-    ('App version', '2.4.0'),
-  ];
+  Future<void> _confirmDeleteData(BuildContext context) async {
+    final confirmed = await SlideUpPopUp.show<bool>(
+      context: context,
+      backgroundColor: c.card,
+      borderRadius: BorderRadius.circular(24),
+      child: DeleteConfirmSheet(
+        c: c,
+        title: 'Delete all your data?',
+        message: 'Every saved prompt and image in your history will be permanently removed. This action cannot be undone.',
+        confirmLabel: 'Delete All',
+      ),
+    );
+    if (confirmed == true) {
+      cubit.deleteHistoryEntries(state.history.map((e) => e.id));
+      await OnboardingView.resetOnboarding();
+      showTopAlert('All your data has been removed');
+      if (context.mounted) context.go(OnboardingView.routeName);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final settings = locator<RemoteConfigService>().data.settings;
+
+    final showDeleteData = settings.enableDataDeletion;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 40),
       children: [
@@ -122,14 +148,6 @@ class _SettingsBody extends StatelessWidget {
                 subtitle: 'Refine prompts automatically',
                 value: state.smartEnhance,
                 onToggle: cubit.toggleSmartEnhance,
-                c: c,
-              ),
-              _ToggleRow(
-                icon: Icons.notifications_outlined,
-                title: 'Notifications',
-                subtitle: 'Alert when a prompt is ready',
-                value: state.notifications,
-                onToggle: cubit.toggleNotifications,
                 c: c,
               ),
               _ToggleRow(
@@ -178,53 +196,43 @@ class _SettingsBody extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 26),
-        _SectionLabel(label: 'ABOUT', c: c),
-        Container(
-          decoration: BoxDecoration(
-            color: c.card,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [PromptColors.cardShadow],
+        if (showDeleteData) ...[
+          const SizedBox(height: 26),
+          _SectionLabel(label: 'ACCOUNT', c: c),
+          Container(
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [PromptColors.cardShadow],
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: _SettingsRow(
+              icon: Icons.delete_outline,
+              title: 'Delete My Data',
+              trailing: '',
+              c: c,
+              isFirst: true,
+              iconColor: PromptColors.danger,
+              titleColor: PromptColors.danger,
+              onTap: () => _confirmDeleteData(context),
+            ),
           ),
-          clipBehavior: Clip.hardEdge,
-          child: Column(
-            children: List.generate(_aboutRows.length, (i) {
-              final row = _aboutRows[i];
-              return Column(
-                children: [
-                  if (i > 0) Divider(color: c.line, thickness: 1, height: 1),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            row.$1,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: c.ink,
-                            ),
-                          ),
-                        ),
-                        if (row.$2.isNotEmpty)
-                          Text(
-                            row.$2,
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.muted),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }),
-          ),
-        ),
+        ],
         const SizedBox(height: 24),
-        Center(
-          child: Text(
-            'PromptGen v2.4.0',
-            style: TextStyle(fontSize: 12, color: c.muted.withValues(alpha: 0.7)),
+        // Tap the version number 5 times to open the hidden dev-mode screen.
+        DevViewGestureDetector(
+          safeArea: false,
+          child: Center(
+            child: FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final version = snapshot.data?.version;
+                return Text(
+                  version == null ? 'PromptGen' : 'PromptGen v$version',
+                  style: TextStyle(fontSize: 12, color: c.muted.withValues(alpha: 0.7)),
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -353,6 +361,8 @@ class _SettingsRow extends StatelessWidget {
   final PromptColors c;
   final bool isFirst;
   final VoidCallback? onTap;
+  final Color? iconColor;
+  final Color? titleColor;
 
   const _SettingsRow({
     required this.icon,
@@ -361,6 +371,8 @@ class _SettingsRow extends StatelessWidget {
     required this.c,
     this.isFirst = false,
     this.onTap,
+    this.iconColor,
+    this.titleColor,
   });
 
   @override
@@ -368,7 +380,7 @@ class _SettingsRow extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst) Divider(color: c.line, thickness: 1, height: 1),
-        InkWell(
+        TapOpacity(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -381,13 +393,25 @@ class _SettingsRow extends StatelessWidget {
                     color: c.iconBox,
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(icon, color: c.accentText, size: 18),
+                  child: Icon(icon, color: iconColor ?? c.accentText, size: 18),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.ink)),
+                  child: Text(title,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: titleColor ?? c.ink)),
                 ),
-                Text(trailing, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.muted)),
+                // Constrained so a long value ('Chinese (Simplified)') can't
+                // squeeze the title down to nothing on a narrow screen.
+                if (trailing.isNotEmpty)
+                  Flexible(
+                    child: Text(
+                      trailing,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.muted),
+                    ),
+                  ),
                 const SizedBox(width: 6),
                 Icon(Icons.chevron_right, color: c.line, size: 17),
               ],

@@ -48,6 +48,9 @@ class _LanguagePageState extends State<LanguagePage> {
                 onTap: () async {
                   await context.read<LanguageCubit>().updateLanguage(Locale(languages[index].$2));
                   Future.delayed(const Duration(milliseconds: 200), () {
+                    // Without this guard, tapping back within the delay pops an
+                    // extra screen off the stack.
+                    if (!context.mounted) return;
                     context.pop();
                   });
                 },

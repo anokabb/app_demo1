@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "2304558075",
+    "project_id": "appdemo-3d1ab",
+    "storage_bucket": "appdemo-3d1ab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:2304558075:android:cd861b1140a92b4b78c15e",
+        "android_client_info": {
+          "package_name": "com.imagetoprompt.ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6CRDpiw61V3LfW1nGT4vEoiV_crgrbCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

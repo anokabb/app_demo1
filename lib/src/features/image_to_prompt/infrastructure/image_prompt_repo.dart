@@ -35,7 +35,10 @@ extension ImagePromptModelTierX on ImagePromptModelTier {
 /// `locator.dart` — every other line in the app talks to `ImagePromptRepo`
 /// only, never to a concrete provider class.
 abstract class ImagePromptRepo {
-  Future<Either<AppError, String>> generatePrompt({
+  /// Streams the prompt as it's generated. Each `Right` emission carries the
+  /// full text accumulated so far (not just the new delta), so consumers can
+  /// simply display the latest emission. A `Left` emission is terminal.
+  Stream<Either<AppError, String>> generatePromptStream({
     required Uint8List imageBytes,
     required String mimeType,
     required ImagePromptModelTier tier,

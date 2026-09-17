@@ -45,6 +45,7 @@ class _ThemePageState extends State<ThemePage> {
                   Future.delayed(
                     const Duration(milliseconds: 300),
                   ).then((_) {
+                    if (!mounted) return;
                     setState(() {});
                   });
                   setState(() {});

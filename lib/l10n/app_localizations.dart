@@ -173,6 +173,12 @@ abstract class AppLocalizations {
   /// **'Later'**
   String get later;
 
+  /// No description provided for @whatsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s New'**
+  String get whatsNew;
+
   /// No description provided for @thisFieldIsRequired.
   ///
   /// In en, this message translates to:

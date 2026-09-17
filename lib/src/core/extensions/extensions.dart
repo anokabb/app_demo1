@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_template/src/features/languages/presentation/cubit/language_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 extension EString on String {
   String get capitalizeFirst {
@@ -22,6 +22,17 @@ extension EString on String {
   String get digitsToZeroDigit {
     return replaceAll(RegExp(r'\d'), '0');
   }
+
+  static final _rtlChar = RegExp(
+    '[֐-׿؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]',
+  );
+
+  bool get isRtl {
+    if (isEmpty) return false;
+    return _rtlChar.hasMatch(this);
+  }
+
+  TextDirection get textDirection => isRtl ? TextDirection.rtl : TextDirection.ltr;
 
 }
 

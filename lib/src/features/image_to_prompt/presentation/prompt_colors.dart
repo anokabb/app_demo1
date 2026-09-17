@@ -17,6 +17,7 @@ class PromptColors {
 
   static const primary = Color(0xFF7C3AED);
   static const idle = Color(0xFF8A82A0);
+  static const danger = Color(0xFFD14343);
 
   static const accentGradient = LinearGradient(
     begin: Alignment.topLeft,

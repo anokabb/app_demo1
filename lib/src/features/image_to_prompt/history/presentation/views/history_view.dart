@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_app_template/src/core/components/pop_up/slide_up_pop_up.dart';
+import 'package:flutter_app_template/src/core/extensions/context_extension.dart';
+import 'package:flutter_app_template/src/core/extensions/extensions.dart';
 import 'package:flutter_app_template/src/core/services/locator/locator.dart';
-import 'package:flutter_app_template/src/features/image_to_prompt/create/presentation/views/create_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/views/history_detail_view.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/delete_confirm_sheet.dart';
+import 'package:flutter_app_template/src/features/image_to_prompt/history/presentation/widgets/history_filters_sheet.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/infrastructure/image_prompt_repo.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/models/history_entry_model.dart';
 import 'package:flutter_app_template/src/features/image_to_prompt/presentation/cubit/image_to_prompt_cubit.dart';
@@ -29,82 +34,270 @@ class HistoryView extends StatefulWidget {
 class _HistoryViewState extends State<HistoryView> {
   final cubit = locator<ImageToPromptCubit>();
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
 
   static const _filters = ['All', 'Today', 'This Week'];
+
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _enterSelectionMode(String id) {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds.add(id);
+    });
+  }
+
+  void _toggleSelected(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  Future<bool> _confirmDeleteSingle(PromptColors c) async {
+    final confirmed = await SlideUpPopUp.show<bool>(
+      context: context,
+      backgroundColor: c.card,
+      borderRadius: BorderRadius.circular(24),
+      child: DeleteConfirmSheet(c: c),
+    );
+    return confirmed == true;
+  }
+
+  Future<void> _confirmBulkDelete(PromptColors c) async {
+    final count = _selectedIds.length;
+    final confirmed = await SlideUpPopUp.show<bool>(
+      context: context,
+      backgroundColor: c.card,
+      borderRadius: BorderRadius.circular(24),
+      child: DeleteConfirmSheet(
+        c: c,
+        title: 'Remove $count item${count == 1 ? '' : 's'}?',
+        message: 'These prompts and their images will be permanently removed from your history.',
+        confirmLabel: 'Delete',
+      ),
+    );
+    if (confirmed != true) return;
+    cubit.deleteHistoryEntries(_selectedIds);
+    showTopAlert('Removed $count item${count == 1 ? '' : 's'}');
+    // The sheet is awaited, so this screen may be gone by now — _exitSelectionMode
+    // calls setState.
+    if (!mounted) return;
+    _exitSelectionMode();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ImageToPromptCubit, ImageToPromptState>(
+    return BlocConsumer<ImageToPromptCubit, ImageToPromptState>(
       bloc: cubit,
+      listenWhen: (prev, curr) => curr.scrollToTopTab == 1 && curr.scrollToTopTick != prev.scrollToTopTick,
+      listener: (context, state) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(0, duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+        }
+      },
       builder: (context, state) {
         final c = PromptColors(state.darkMode);
         final groups = state.groupedHistory;
+        // `filteredHistory` is a getter that re-filters the whole list on every
+        // access — hoist it out of the item builder so lookups aren't O(n²) per
+        // build (this rebuilds on every streaming chunk).
+        final filtered = state.filteredHistory;
+        final indexById = <String, int>{
+          for (var i = 0; i < filtered.length; i++) filtered[i].id: i,
+        };
 
         return Scaffold(
           backgroundColor: c.page,
-          body: ListView(
+          body: Stack(
+            children: [
+              ListView(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(22, 8, 22, 130),
             children: [
-              Text(
-                'History',
-                style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.33,
-                  height: 1.04,
-                  color: c.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'All your generated prompts in one place.',
-                style: TextStyle(fontSize: 16, height: 1.45, color: c.muted),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'History',
+                          style: TextStyle(
+                            fontSize: 38,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1.33,
+                            height: 1.04,
+                            color: c.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'All your generated prompts in one place.',
+                          style: TextStyle(fontSize: 16, height: 1.45, color: c.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Always reachable while selecting: gating this on a non-empty
+                  // list stranded the user in selection mode as soon as a search
+                  // returned no matches.
+                  if (groups.isNotEmpty || _selectionMode)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_selectionMode) {
+                            _exitSelectionMode();
+                          } else {
+                            setState(() => _selectionMode = true);
+                          }
+                        },
+                        child: Text(
+                          _selectionMode ? 'Cancel' : 'Select',
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w600,
+                            color: c.accentText,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 22),
 
               // Search
-              Container(
-                height: 54,
-                decoration: BoxDecoration(
-                  color: c.field,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Icon(Icons.search, color: c.muted, size: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: c.field,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: c.muted, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: cubit.setHistorySearch,
+                              style: TextStyle(fontSize: 15, color: c.ink),
+                              decoration: InputDecoration(
+                                hintText: 'Search prompts...',
+                                hintStyle: TextStyle(color: c.muted, fontSize: 15),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: false,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _searchController,
+                            builder: (context, value, _) {
+                              final hasText = value.text.isNotEmpty;
+                              return IgnorePointer(
+                                ignoring: !hasText,
+                                child: AnimatedOpacity(
+                                  opacity: hasText ? 1 : 0,
+                                  duration: const Duration(milliseconds: 160),
+                                  child: AnimatedScale(
+                                    scale: hasText ? 1 : 0.6,
+                                    duration: const Duration(milliseconds: 160),
+                                    curve: Curves.easeOutBack,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        _searchController.clear();
+                                        cubit.setHistorySearch('');
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(left: 6),
+                                        child: Icon(Icons.cancel, color: c.muted, size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (state.historyTiers.length > 1 || state.historyLanguages.length > 1) ...[
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: cubit.setHistorySearch,
-                        style: TextStyle(fontSize: 15, color: c.ink),
-                        decoration: InputDecoration(
-                          hintText: 'Search prompts...',
-                          hintStyle: TextStyle(color: c.muted, fontSize: 15),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          filled: false,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
+                    GestureDetector(
+                      onTap: () => showHistoryFiltersSheet(context: context, c: c, cubit: cubit),
+                      child: Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: c.field,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(
+                              Icons.tune,
+                              color: (state.histTier != null || state.histLanguage != null) ? c.accentText : c.muted,
+                              size: 22,
+                            ),
+                            if (state.histTier != null || state.histLanguage != null)
+                              Positioned(
+                                top: 9,
+                                right: 9,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: c.accentText,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: c.field, width: 2),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
               const SizedBox(height: 18),
 
-              // Filter chips
-              Row(
-                children: List.generate(_filters.length, (i) {
+              // Filter chips — scrollable so the row can't overflow at large
+              // Dynamic Type settings.
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(_filters.length, (i) {
                   final selected = state.histFilter == i;
                   return Padding(
                     padding: EdgeInsets.only(right: i < _filters.length - 1 ? 10 : 0),
@@ -130,8 +323,10 @@ class _HistoryViewState extends State<HistoryView> {
                       ),
                     ),
                   );
-                }),
+                  }),
+                ),
               ),
+
               const SizedBox(height: 24),
 
               if (groups.isEmpty)
@@ -164,14 +359,19 @@ class _HistoryViewState extends State<HistoryView> {
                       ),
                     ),
                     ...group.items.map((entry) {
-                      final globalIndex = state.filteredHistory.indexOf(entry);
+                      final globalIndex = indexById[entry.id] ?? -1;
+                      final selected = _selectedIds.contains(entry.id);
                       return Padding(
                         key: ValueKey(entry.id),
                         padding: const EdgeInsets.only(bottom: 14),
                         child: Dismissible(
                           key: ValueKey('dismiss-${entry.id}'),
-                          direction: DismissDirection.endToStart,
-                          onDismissed: (_) => cubit.deleteHistoryEntry(entry.id),
+                          direction: _selectionMode ? DismissDirection.none : DismissDirection.endToStart,
+                          confirmDismiss: (_) => _confirmDeleteSingle(c),
+                          onDismissed: (_) {
+                            cubit.deleteHistoryEntry(entry.id);
+                            showTopAlert('Removed from history');
+                          },
                           background: Container(
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 22),
@@ -183,18 +383,38 @@ class _HistoryViewState extends State<HistoryView> {
                           ),
                           child: GestureDetector(
                             onTap: () {
-                              cubit.useHistoryEntry(entry.id);
-                              context.go(CreateView.routeName);
+                              if (_selectionMode) {
+                                _toggleSelected(entry.id);
+                              } else {
+                                context.push(HistoryDetailView.routeName, extra: entry);
+                              }
                             },
-                            child: _HistoryCard(
-                              entry: entry,
-                              c: c,
-                              copied: state.histCopied == globalIndex,
-                              onCopy: () {
-                                Clipboard.setData(ClipboardData(text: entry.prompt));
-                                cubit.copyHistory(globalIndex);
-                              },
-                              onToggleSaved: () => cubit.toggleHistorySaved(entry.id),
+                            onLongPress: _selectionMode ? null : () => _enterSelectionMode(entry.id),
+                            child: Row(
+                              children: [
+                                AnimatedSize(
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeOutCubic,
+                                  child: _selectionMode
+                                      ? Padding(
+                                          padding: const EdgeInsets.only(right: 12),
+                                          child: _SelectionCheckbox(selected: selected, c: c),
+                                        )
+                                      : const SizedBox(width: 0),
+                                ),
+                                Expanded(
+                                  child: _HistoryCard(
+                                    entry: entry,
+                                    c: c,
+                                    copied: state.histCopied == globalIndex,
+                                    onCopy: () {
+                                      Clipboard.setData(ClipboardData(text: entry.prompt));
+                                      cubit.copyHistory(globalIndex);
+                                      showTopAlert('Copied to clipboard');
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -204,8 +424,115 @@ class _HistoryViewState extends State<HistoryView> {
                 }),
             ],
           ),
+              if (_selectionMode)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  // Sits above the persistent bottom tab bar (a Positioned overlay in
+                  // ImageToPromptShell) so this toolbar isn't painted over by it.
+                  bottom: 110,
+                  child: _BulkDeleteBar(
+                    count: _selectedIds.length,
+                    c: c,
+                    onDelete: _selectedIds.isEmpty ? null : () => _confirmBulkDelete(c),
+                  ),
+                ),
+            ],
+          ),
         );
       },
+    );
+  }
+}
+
+class _SelectionCheckbox extends StatelessWidget {
+  final bool selected;
+  final PromptColors c;
+
+  const _SelectionCheckbox({required this.selected, required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? c.accentText : Colors.transparent,
+        border: Border.all(color: selected ? c.accentText : c.muted.withValues(alpha: 0.5), width: 1.6),
+      ),
+      child: selected ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
+    );
+  }
+}
+
+class _BulkDeleteBar extends StatelessWidget {
+  final int count;
+  final PromptColors c;
+  final VoidCallback? onDelete;
+
+  const _BulkDeleteBar({required this.count, required this.c, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onDelete != null;
+    const danger = Color(0xFFD14343);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          color: c.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.line, width: 1),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.16), blurRadius: 18, offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Text(
+              count == 0 ? 'Select items' : '$count selected',
+              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: c.muted),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: onDelete,
+              child: Opacity(
+                opacity: enabled ? 1 : 0.4,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.delete_outline, color: danger, size: 18),
+                    SizedBox(width: 6),
+                    Text('Delete', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: danger)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for an image that can't be decoded — an entry can hold an empty
+/// byte list when its Hive blob is missing, and decoding that throws
+/// "Invalid image data" on every rebuild.
+class _BrokenImagePlaceholder extends StatelessWidget {
+  final PromptColors c;
+  const _BrokenImagePlaceholder({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64,
+      height: 64,
+      color: c.field,
+      child: Icon(Icons.image_not_supported_outlined, color: c.muted, size: 22),
     );
   }
 }
@@ -215,14 +542,12 @@ class _HistoryCard extends StatelessWidget {
   final PromptColors c;
   final bool copied;
   final VoidCallback onCopy;
-  final VoidCallback onToggleSaved;
 
   const _HistoryCard({
     required this.entry,
     required this.c,
     required this.copied,
     required this.onCopy,
-    required this.onToggleSaved,
   });
 
   @override
@@ -238,12 +563,15 @@ class _HistoryCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.memory(
-              entry.imageBytes,
-              width: 64,
-              height: 64,
-              fit: BoxFit.cover,
-            ),
+            child: (entry.imageBytes == null || entry.imageBytes!.isEmpty)
+                ? _BrokenImagePlaceholder(c: c)
+                : Image.memory(
+                    entry.imageBytes!,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, _, __) => _BrokenImagePlaceholder(c: c),
+                  ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -255,9 +583,13 @@ class _HistoryCard extends StatelessWidget {
                   style: TextStyle(fontSize: 14, height: 1.4, color: c.ink),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  textDirection: entry.prompt.textDirection,
                 ),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Container(
                       decoration: BoxDecoration(
@@ -275,7 +607,29 @@ class _HistoryCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: c.field,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.language, size: 11, color: c.muted),
+                          const SizedBox(width: 4),
+                          Text(
+                            entry.outputLanguage,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                              color: c.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Text(
                       _relativeTime(entry.createdAt),
                       style: TextStyle(fontSize: 12, color: c.muted, fontWeight: FontWeight.w500),
@@ -286,18 +640,6 @@ class _HistoryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          GestureDetector(
-            onTap: onToggleSaved,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                entry.isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                color: entry.isSaved ? c.accentText : c.muted,
-                size: 19,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
           GestureDetector(
             onTap: onCopy,
             child: Container(

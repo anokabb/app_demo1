@@ -12,6 +12,7 @@
   "logout": "Logout",
   "updateNow": "Update Now",
   "later": "Later",
+  "whatsNew": "What's New",
   "thisFieldIsRequired": "This field is required",
   "enterAValidEmail": "Please enter a valid email",
   "passwordsDoNotMatch": "Passwords do not match",

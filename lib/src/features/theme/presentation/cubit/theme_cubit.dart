@@ -7,14 +7,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 part 'theme_state.dart';
 
 class ThemeCubit extends Cubit<ThemeState> {
-  ThemeCubit() : super(ThemeState(selectedTheme: ThemeState.light)) {
+  ThemeCubit() : super(ThemeState(selectedTheme: ThemeState.dark)) {
     getTheme();
   }
 
   static bool get isDarkMode => locator<ThemeCubit>().state.isDarkMode;
 
   Future<void> getTheme() async {
-    final int selectedTheme = settingsBox.get('selectedTheme', defaultValue: ThemeState.light);
+    final int selectedTheme = settingsBox.get('selectedTheme', defaultValue: ThemeState.dark);
     emit(ThemeState(selectedTheme: selectedTheme));
   }
 

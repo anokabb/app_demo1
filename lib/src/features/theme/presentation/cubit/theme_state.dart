@@ -14,7 +14,7 @@ class ThemeState {
       case system:
         return 'System';
       default:
-        return 'System';
+        return 'Dark';
     }
   }
 
@@ -36,7 +36,7 @@ class ThemeState {
       case system:
         return ThemeMode.system;
       default:
-        return ThemeMode.system;
+        return ThemeMode.dark;
     }
   }
 

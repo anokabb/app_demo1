@@ -1,0 +1,57 @@
+name: App Store Connect
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'What to do'
+        required: true
+        type: choice
+        options:
+          - update_metadata
+          - submit_for_review
+        default: update_metadata
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  app-store-connect:
+    runs-on: ubuntu-latest
+    env:
+      IOS_APP_IDENTIFIER: com.imagetoprompt.ai
+      IOS_TEAM_ID: 3HA397DXRX
+      IOS_ITC_TEAM_ID: '123754817'
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: false
+
+      - name: Install fastlane
+        run: gem install fastlane --no-document
+
+      - name: Write App Store Connect API key
+        working-directory: ios
+        run: printf '%s' "$APP_STORE_CONNECT_API_KEY" > AppStoreConnect.p8
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+
+      - name: Run fastlane lane
+        working-directory: ios
+        run: bundle exec fastlane ${{ inputs.action }} || fastlane ${{ inputs.action }}
+
+      - name: Clean up API key
+        if: always()
+        working-directory: ios
+        run: rm -f AppStoreConnect.p8

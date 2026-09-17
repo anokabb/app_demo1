@@ -1,0 +1,6 @@
+A refreshed, fully animated onboarding experience and a smoother, more reliable prompt generation flow.
+
+• Redesigned welcome, style carousel, and reviews screens with polished animations
+• Dark mode is now the default look
+• Fixed an issue that could prevent generating a Detailed-style prompt
+• Deleting your data now returns you to the welcome screen

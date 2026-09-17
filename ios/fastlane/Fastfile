@@ -52,4 +52,46 @@ platform :ios do
       changelog: ENV.fetch("TESTFLIGHT_RELEASE_NOTES", nil)
     )
   end
+
+  desc "Update App Store listing metadata (description, keywords, promotional text, release notes) without touching the binary or submitting for review"
+  lane :update_metadata do
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: "AppStoreConnect.p8"
+    )
+
+    deliver(
+      app_identifier: ENV["IOS_APP_IDENTIFIER"],
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      submit_for_review: false,
+      force: true,
+      run_precheck_before_submit: false
+    )
+  end
+
+  desc "Attach the latest processed TestFlight build to the current App Store version and submit it for review"
+  lane :submit_for_review do
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: "AppStoreConnect.p8"
+    )
+
+    deliver(
+      app_identifier: ENV["IOS_APP_IDENTIFIER"],
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      submit_for_review: true,
+      automatic_release: false,
+      force: true,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false
+      }
+    )
+  end
 end 

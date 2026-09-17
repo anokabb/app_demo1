@@ -1,0 +1,14 @@
+PromptGen turns any photo or image into a precise, ready-to-use prompt for AI image generators like Midjourney, Stable Diffusion, and DALL-E.
+
+Just drop in an image — or paste a link — and PromptGen studies its subject, composition, lighting, color palette, mood, and art style to write a prompt you can paste straight into your favorite AI tool.
+
+FEATURES
+
+• Fast, Balanced & Detailed styles — choose how concise or richly detailed your generated prompt should be
+• Smart Enhance — add extra vividness and creative flourish to any prompt
+• Multi-language output — generate prompts in the language you need
+• History — every prompt you generate is saved so you can revisit, copy, or reuse it later
+• Paste an image URL or upload from your library — no account required to get started
+• Clean, modern dark interface designed for fast, focused work
+
+Whether you're a designer exploring new styles, an artist reverse-engineering a reference image, or just curious what prompt could recreate a photo, PromptGen gets you a usable answer in seconds.

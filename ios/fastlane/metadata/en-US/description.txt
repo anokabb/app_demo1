@@ -1,14 +1,19 @@
-PromptGen turns any photo or image into a precise, ready-to-use prompt for AI image generators like Midjourney, Stable Diffusion, and DALL-E.
+Stuck describing an image for Midjourney, DALL-E, or Stable Diffusion? PromptGen writes the perfect prompt for you — instantly.
 
-Just drop in an image — or paste a link — and PromptGen studies its subject, composition, lighting, color palette, mood, and art style to write a prompt you can paste straight into your favorite AI tool.
+Just drop in a photo, or paste an image link, and PromptGen studies its subject, setting, composition, lighting, color palette, mood, and art style to generate a ready-to-use AI prompt you can paste straight into your favorite image generator.
 
-FEATURES
+WHY PROMPTGEN
+• Works great with Midjourney, DALL-E, Stable Diffusion, and any AI art tool
+• Fast, Balanced & Detailed styles — control exactly how rich your prompt is
+• Smart Enhance for extra vivid, creative language
+• Generate prompts in your own language
+• Full history — every prompt is saved so you can copy or reuse it anytime
+• No account needed — upload a photo or paste a URL and go
+• Clean, distraction-free dark design
 
-• Fast, Balanced & Detailed styles — choose how concise or richly detailed your generated prompt should be
-• Smart Enhance — add extra vividness and creative flourish to any prompt
-• Multi-language output — generate prompts in the language you need
-• History — every prompt you generate is saved so you can revisit, copy, or reuse it later
-• Paste an image URL or upload from your library — no account required to get started
-• Clean, modern dark interface designed for fast, focused work
+PERFECT FOR
+• Artists and designers reverse-engineering a reference image
+• Content creators who need a great prompt fast, without the guesswork
+• Anyone curious what prompt would recreate a photo they love
 
-Whether you're a designer exploring new styles, an artist reverse-engineering a reference image, or just curious what prompt could recreate a photo, PromptGen gets you a usable answer in seconds.
+Download PromptGen free and turn your first image into a usable AI prompt in under 10 seconds.
